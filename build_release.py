@@ -131,6 +131,9 @@ def post_process():
     manual_dir = Path(target_dir) / "docs"
     manual_dir.mkdir()
     shutil.copy2(manual_src, manual_dir / "usage.html")
+    version_file = Path("VERSION")
+    if version_file.is_file():
+        shutil.copy2(version_file, Path(target_dir) / "VERSION")
     
     # 4. 撱箇??寧?????單 (.bat)
     create_bat(target_dir, "run_admin.bat", r'start "" "AdminTool\AdminTool.exe"')

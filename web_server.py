@@ -102,6 +102,58 @@ def _request_profile_id(default="default"):
     return config_manager.sanitize_profile_id(default)
 
 
+def _read_app_version():
+    """VERSION file at the shared root (source checkout or installed dist); 'unknown' if absent."""
+    try:
+        with open(os.path.join(config_manager.SHARED_ROOT, "VERSION"), "r", encoding="utf-8") as f:
+            return f.read().strip() or "unknown"
+    except OSError:
+        return "unknown"
+
+
+def _read_git_commit():
+    """Best-effort commit id of a source checkout, read from .git without running git."""
+    git_dir = os.path.join(config_manager.SHARED_ROOT, ".git")
+    try:
+        with open(os.path.join(git_dir, "HEAD"), "r", encoding="utf-8") as f:
+            head = f.read().strip()
+        if not head.startswith("ref:"):
+            return head[:12]
+        ref = head.split(" ", 1)[1].strip()
+        try:
+            with open(os.path.join(git_dir, *ref.split("/")), "r", encoding="utf-8") as f:
+                return f.read().strip()[:12]
+        except OSError:
+            with open(os.path.join(git_dir, "packed-refs"), "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) == 2 and parts[1] == ref:
+                        return parts[0][:12]
+        return ""
+    except OSError:
+        return ""
+
+
+APP_VERSION = _read_app_version()
+
+
+def _runtime_process_kind(name, cmdline):
+    """Classify a process as the Player or a WebView helper, for both the packaged
+    executables and a source checkout run with python.exe / pythonw.exe."""
+    lower_name = str(name or "").lower()
+    if lower_name == "player.exe":
+        return "player"
+    if lower_name in ("webviewplayer.exe", "webview_player.exe"):
+        return "webview"
+    if lower_name in ("python.exe", "pythonw.exe") and len(cmdline or []) > 1:
+        script = os.path.basename(str(cmdline[1]).strip('"')).lower()
+        if script == "player.py":
+            return "player"
+        if script == "webview_player.py":
+            return "webview"
+    return None
+
+
 def _profile_paths(profile_id=None):
     profile_id = config_manager.sanitize_profile_id(profile_id or "default")
     data_dir = config_manager.get_data_dir(profile_id)
@@ -393,6 +445,16 @@ def _has_profile_arg(args, profile_id):
     return False
 
 
+def _explicit_profile_arg(args):
+    """The --profile value a process was started with, or None when it has none."""
+    for index, arg in enumerate(args):
+        if arg == "--profile" and index + 1 < len(args):
+            return args[index + 1]
+        if str(arg).startswith("--profile="):
+            return str(arg).split("=", 1)[1]
+    return None
+
+
 def _profile_runtime_roots(profile_id):
     """Return Player/WebViewPlayer roots belonging to one profile."""
     if psutil is None:
@@ -403,12 +465,12 @@ def _profile_runtime_roots(profile_id):
     roots = []
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
-            name = (proc.info.get("name") or "").lower()
-            if name not in {"player.exe", "webviewplayer.exe"}:
+            kind = _runtime_process_kind(proc.info.get("name"), proc.info.get("cmdline") or [])
+            if kind is None:
                 continue
             cmdline = " ".join(proc.info.get("cmdline") or [])
             lower_cmd = os.path.normcase(cmdline)
-            if name == "player.exe":
+            if kind == "player":
                 belongs = _has_profile_arg(proc.info.get("cmdline") or [], profile_id)
             elif profile_id == CONTROL_PROFILE_ID:
                 belongs = data_dir in lower_cmd and f"{os.sep}profiles{os.sep}" not in lower_cmd
@@ -607,7 +669,10 @@ def _process_snapshot(profile_id=None):
             lower_name = name.lower()
             cmd = " ".join(proc.info.get("cmdline") or [])
             lower_cmd = cmd.lower()
-            profile_arg_match = _has_profile_arg(proc.info.get("cmdline") or [], profile_id)
+            raw_cmdline = proc.info.get("cmdline") or []
+            profile_arg_match = _has_profile_arg(raw_cmdline, profile_id)
+            if _explicit_profile_arg(raw_cmdline) is not None and not profile_arg_match:
+                continue  # started for another profile; a shared root path is not a match
             tag_match = f"webview2_{tag_piece.lower()}_" in lower_cmd
             if is_default_profile:
                 data_dir_match = data_dir in lower_cmd and "\\profiles\\" not in lower_cmd
@@ -615,11 +680,10 @@ def _process_snapshot(profile_id=None):
             else:
                 profile_match = profile_arg_match or tag_match or data_dir in lower_cmd
             interesting_process = (
-                "player.exe" in lower_name
-                or "webviewplayer" in lower_name
-                or "webview_player.py" in lower_cmd
+                _runtime_process_kind(name, proc.info.get("cmdline") or []) is not None
                 or "msedgewebview2" in lower_name
                 or "webserver" in lower_name
+                or "web_server.py" in lower_cmd
             )
             if not (interesting_process and profile_match):
                 continue
@@ -724,6 +788,7 @@ def list_profiles_api():
     return jsonify({
         "status": "ok",
         "active": _request_profile_id(),
+        "version": APP_VERSION,
         "profiles": profiles,
     })
 
@@ -739,6 +804,18 @@ def create_profile_api():
         "profile": profile_id,
         "data_dir": data_dir,
         "profiles": config_manager.list_profiles(),
+    })
+
+
+@app.route("/api/version", methods=["GET"])
+def version_api():
+    """API: which build is running (VERSION file, git commit of a source checkout, mode)."""
+    return jsonify({
+        "status": "ok",
+        "version": APP_VERSION,
+        "commit": _read_git_commit(),
+        "mode": "packaged" if getattr(sys, "frozen", False) else "source",
+        "root": config_manager.SHARED_ROOT,
     })
 
 
@@ -868,6 +945,7 @@ def _diagnostics_for_profile(profile_id):
 
     return {
         "profile": profile_id,
+        "version": APP_VERSION,
         "status": status,
         "webview": webview_status,
         "config": cfg_summary,
@@ -1038,17 +1116,27 @@ def check_and_autolaunch():
             print(f"Player auto-launch failed: {profile_id}: {msg}")
     print(f"Player auto-launch complete. launched={launched}")
 
+def _production_mode(argv=None, environ=None, frozen=None):
+    """Packaged build, a '--production' argument or SCREENSPLITTER_PRODUCTION=1 select
+    production mode: output goes to web_server.log, opted-in Players are auto-launched
+    and the reloader is off. Everything else is development mode."""
+    argv = sys.argv[1:] if argv is None else argv
+    environ = os.environ if environ is None else environ
+    frozen = getattr(sys, "frozen", False) if frozen is None else frozen
+    return bool(frozen or "--production" in argv
+                or str(environ.get("SCREENSPLITTER_PRODUCTION", "")).strip() == "1")
+
+
 if __name__ == "__main__":
-    # 啟動時嘗試自動開啟 Player (只在打包模式下生效，避免開發時煩人)
-    if getattr(sys, 'frozen', False):
-        # Redirect Output to Log File (因為沒有黑視窗，必須寫檔才看得到)
-        # using DATA_DIR from config_manager (imported above)
+    if _production_mode():
+        # No console in production (WebServer.exe or pythonw.exe): write the log file.
         log_path = os.path.join(DATA_DIR, "web_server.log")
         sys.stdout = sys.stderr = open(log_path, "w", encoding="utf-8", buffering=1)
 
+        mode = "packaged" if getattr(sys, "frozen", False) else "source"
+        print(f"ScreenSplitter WebServer {APP_VERSION} ({mode} mode, {config_manager.SHARED_ROOT})")
         print(f"API access: {_api_access_mode_summary()}")
         check_and_autolaunch()
-        # Production mode: No debug (removes the reloader process)
         app.run(host="0.0.0.0", port=5000, debug=False)
     else:
         # Development mode keeps the auto-reloader (live edits still apply) but

@@ -15,6 +15,11 @@ Release/
 *.spec
 ScreenSplitter_Setup*.exe
 
+# --- Portable runtime placed beside a source checkout by build_source_release.py ---
+/python/
+/git/
+/.cache/
+
 # --- Large third-party binaries (copied to a machine once by hand) ---
 VLC/
 vlc.exe
