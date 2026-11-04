@@ -50,4 +50,6 @@ Name: "{autodesktop}\ScreenSplitter Admin"; Filename: "{app}\run_admin.bat"; Wor
 Name: "{userstartup}\ScreenSplitter Players"; Filename: "{app}\run_player.bat"; WorkingDir: "{app}"; IconFilename: "{app}\player.ico"
 
 [Run]
+; The checkout metadata is shipped un-hidden (Inno Setup skips hidden folders); hide it again like git would.
+Filename: "{cmd}"; Parameters: "/c attrib +h ""{app}\.git"""; Flags: runhidden
 Filename: "{app}\run_webserver.bat"; Description: "Launch ScreenSplitter WebServer"; Flags: shellexec postinstall skipifsilent

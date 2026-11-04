@@ -105,7 +105,10 @@ def clone_checkout(ref):
         _remove_tree(DIST)
     DIST.parent.mkdir(parents=True, exist_ok=True)
     log(f"Cloning {REPO_URL} ({ref}) -> {DIST}")
-    run(["git", "clone", "--depth", "1", "--branch", ref, REPO_URL, DIST], cwd=ROOT)
+    # Git marks .git hidden on Windows and Inno Setup silently skips hidden folders, which
+    # would ship an installer without the checkout metadata that update.bat needs.
+    run(["git", "clone", "-c", "core.hideDotFiles=false", "--depth", "1", "--branch", ref, REPO_URL, DIST], cwd=ROOT)
+    run(["attrib", "-H", DIST / ".git"], cwd=ROOT)
     commit = run(["git", "rev-parse", "HEAD"], cwd=DIST, capture=True).stdout.strip()
     # Line endings and long paths must not make the installed checkout look modified.
     run(["git", "config", "core.autocrlf", "true"], cwd=DIST)
@@ -184,6 +187,8 @@ def verify(dist):
     status = run(["git", "status", "--porcelain"], cwd=dist, capture=True).stdout.strip()
     if status:
         raise RuntimeError("dist checkout is not clean:\n" + status)
+    if os.stat(dist / ".git").st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN:
+        raise RuntimeError(".git is hidden; Inno Setup would leave it out of the installer")
     return tail
 
 
