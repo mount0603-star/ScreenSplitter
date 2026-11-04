@@ -1,6 +1,41 @@
-PySide6
-Flask
-pywin32
-psutil
-pyinstaller
-pywebview
+# ScreenSplitter runtime + build dependencies, pinned to the exact versions verified
+# on 2026-11-04 with Python 3.11.9 (64-bit, Windows). Install into a fresh venv:
+#   python -m venv venv
+#   venv\Scripts\python.exe -m pip install -r requirements.txt
+# Change a version on purpose only, then re-run the tests and a packaged Player check.
+
+# --- Direct dependencies ---
+PySide6==6.10.1          # Player / AdminTool (Qt; QtWebEngine for the legacy web path)
+Flask==3.1.2             # WebServer / WebAdmin
+pywin32==311             # win32gui / win32api / win32process / win32event / win32security
+psutil==7.2.1            # process tracking and cleanup
+pywebview==6.1           # WebViewPlayer (Edge WebView2 host)
+pyinstaller==6.18.0      # build_release.py only
+
+# --- Transitive dependencies (pinned so every machine gets the identical set) ---
+# PySide6
+PySide6_Essentials==6.10.1
+PySide6_Addons==6.10.1
+shiboken6==6.10.1
+# Flask
+blinker==1.9.0
+click==8.3.1
+colorama==0.4.6
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+Werkzeug==3.1.5
+# pywebview
+pythonnet==3.0.5
+clr_loader==0.2.10
+cffi==2.0.0
+pycparser==3.0
+proxy_tools==0.1.0
+bottle==0.13.4
+typing_extensions==4.15.0
+# pyinstaller
+altgraph==0.17.5
+packaging==26.0
+pefile==2024.8.26
+pyinstaller-hooks-contrib==2026.0
+pywin32-ctypes==0.2.3

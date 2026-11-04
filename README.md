@@ -13,8 +13,8 @@ Windows 多分區看板輪播系統。四個元件：
 
 ## 原始碼模式執行
 
-1. 安裝 Python 3.11（勾選 Add to PATH）。
-2. 執行 `deploy_setup.bat` 建立 `venv` 並安裝 `requirements.txt`。
+1. 安裝 Python 3.11.9（64 位元，勾選 Add to PATH）。
+2. 執行 `deploy_setup.bat` 建立 `venv` 並安裝 `requirements.txt`。`requirements.txt` 把直接與間接相依全部釘死在這台驗證過的版本，每台機器裝出來的套件組合完全相同；要升級套件時改這個檔案，再跑測試與打包驗證。
 3. 執行 `run_startup_dual.bat` 啟動 WebServer 與每個 Profile 的 Player；或分別用 `run_web_admin.bat`、`run_player.bat`、`run_admin.bat`。
 4. 瀏覽器開 `http://127.0.0.1:5000/`。
 

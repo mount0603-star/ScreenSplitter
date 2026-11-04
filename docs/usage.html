@@ -544,7 +544,7 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
 
 <section id="build" aria-labelledby="build-title">
   <h2 id="build-title">17. 測試與安裝包製作</h2>
-  <p>本專案目前位於 <code>D:\ScreenSplitter</code>。2026-11-02 查核的建置 Python 為 <code>venv\Scripts\python.exe</code>，Python 3.11.9、PySide6 6.10.1、PyInstaller 6.18.0。專案另有 .venv 等資料夾，不能因名稱相近就混用；更換環境前先保存與核對套件版本。</p>
+  <p>本專案目前位於 <code>D:\ScreenSplitter</code>。2026-11-02 查核的建置 Python 為 <code>venv\Scripts\python.exe</code>，Python 3.11.9、PySide6 6.10.1、PyInstaller 6.18.0。專案另有 .venv 等資料夾，不能因名稱相近就混用。自 2026-11-04 起 requirements.txt 釘死全部直接與間接套件版本；新環境以 python -m venv 建立後執行 pip install -r requirements.txt，即得到與驗證時相同的組合。更換版本前先保存與核對。</p>
   <h3>回歸檢查</h3>
   <pre><code>Set-Location -LiteralPath 'D:\ScreenSplitter'
 &amp; '.\venv\Scripts\python.exe' -m unittest discover -s tests -v
