@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Splitter System - Engineering Log</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            color: var(--primary-color);
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        /* Timeline Styles */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #dfe6e9;
+            border-radius: 2px;
+        }
+
+        .entry {
+            position: relative;
+            margin-bottom: 40px;
+            padding-left: 50px;
+        }
+
+        .entry::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 24px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 3px #dfe6e9;
+        }
+
+        .entry.critical::before {
+            background: #e74c3c;
+            box-shadow: 0 0 0 3px #fab1a0;
+        }
+
+        .date-badge {
+            display: inline-block;
+            background: var(--primary-color);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .date-badge.today {
+            background: #e74c3c;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eee;
+        }
+
+        .card-title {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Tags */
+        .tags {
+            margin: 10px 0;
+        }
+
+        .tag {
+            font-size: 0.8em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 5px;
+            border: 1px solid transparent;
+        }
+
+        .tag-bug {
+            background: #ffebee;
+            color: #c0392b;
+            border-color: #ffcdd2;
+        }
+
+        .tag-feat {
+            background: #e8f5e9;
+            color: #27ae60;
+            border-color: #a5d6a7;
+        }
+
+        .tag-infra {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-color: #90caf9;
+        }
+
+        .tag-ui {
+            background: #fff3e0;
+            color: #e67e22;
+            border-color: #ffcc80;
+        }
+
+        /* Content Sections */
+        .section-title {
+            font-weight: bold;
+            color: #34495e;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 1.05em;
+        }
+
+        ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        /* Code Box */
+        .code-box {
+            background: #2d3436;
+            color: #f1f2f6;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 0.9em;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .code-title {
+            color: #bdc3c7;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #636e72;
+            padding-bottom: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Screen Splitter System</h1>
+            <p>工程開發與維護日誌 (Engineering & Maintenance Log)</p>
+        </div>
+
+        <div class="timeline">
+
+            <!-- 2026-02-09 -->
+            <div class="entry critical">
+                <span class="date-badge today">2026-02-09</span>
+                <div class="card">
+                    <h3 class="card-title">WebView2 黑畫面 / 狂重啟修復（argparse 參數解析）</h3>
+                    <div class="tags">
+                        <span class="tag tag-bug">Critical Fix</span>
+                        <span class="tag tag-infra">Runtime Stability</span>
+                        <span class="tag tag-feat">Release</span>
+                    </div>
+
+                    <div class="section-title">根因分析</div>
+                    <ul>
+                        <li><strong>主要原因：</strong>Player 啟動 WebViewPlayer 時使用 <code>--browser-args "--renderer-process-limit=4"</code>。由於參數值本身以 <code>--</code> 開頭，會被 argparse 視為新選項，導致 <code>--browser-args</code> 變成「沒有值」。</li>
+                        <li><strong>外部症狀：</strong>WebViewPlayer 行程啟動後立即退出，Player 端持續出現「Window not found / No webviewplayer.exe processes found」，進而反覆重啟 WebView 視窗，最終造成 Web 與影片區域黑畫面。</li>
+                    </ul>
+
+                    <div class="section-title">修正內容</div>
+                    <ul>
+                        <li><strong>player.py：</strong>將傳遞格式改為 <code>--browser-args=...</code>（同一個 token），避免 argparse 把值誤判為新選項。</li>
+                        <li><strong>player.py：</strong>對 <code>webview_browser_args</code> 做基本清理；若收到多個 token，暫以第一個 token 為準並寫入提示 log，防止啟動命令被拆壞。</li>
+                        <li><strong>webview_player.py：</strong>加入向下相容轉換。若收到舊格式 <code>--browser-args --xxx</code>，啟動前自動重寫為 <code>--browser-args=--xxx</code> 再交給 argparse。</li>
+                    </ul>
+
+                    <div class="section-title">相關整合與打包</div>
+                    <ul>
+                        <li><strong>WebAdmin：</strong>新增 <code>webview_host_mode</code> 開關（讀取/儲存 config）。</li>
+                        <li><strong>build_release.py：</strong>補上必要元件缺失檢查（缺件直接 fail），並統一輸出啟動腳本：<code>run_admin.bat</code>、<code>run_player.bat</code>、<code>run_webserver.bat</code>。</li>
+                        <li><strong>setup_script.iss：</strong>檢查與修正捷徑/啟動項目，重新編譯安裝包。</li>
+                    </ul>
+
+                    <div class="section-title">驗證結果</div>
+                    <ul>
+                        <li><code>python -m py_compile player.py webview_player.py</code> 通過。</li>
+                        <li><code>venv\Scripts\python.exe build_release.py</code> 成功。</li>
+                        <li><code>ISCC setup_script.iss</code> 成功，產生新版 <code>build\ScreenSplitter_Setup.exe</code>。</li>
+                    </ul>
+
+                    <div class="code-box">
+                        <div class="code-title">參數修正摘要</div>
+                        舊：--browser-args "--renderer-process-limit=4"<br>
+                        新：--browser-args=--renderer-process-limit=4
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2026-02-08 (Video Stability & VLC Plan) -->
+            <div class="entry critical">
+                <span class="date-badge today">2026-02-08</span>
+                <div class="card">
+                    <h3 class="card-title">影片穩定性方案：WebView2（網頁）+ VLC 外部播放（影片）</h3>
+                    <div class="tags">
+                        <span class="tag tag-bug">穩定性</span>
+                        <span class="tag tag-infra">影片管線</span>
+                        <span class="tag tag-ui">播放策略</span>
+                    </div>
+
+                    <div class="section-title">問題觀察</div>
+                    <ul>
+                        <li><strong>QMediaPlayer 崩潰：</strong>正式版 Player.exe 觸發 <code>ffmpegmediaplugin.dll</code> 0xc0000005（Access Violation），非單純 GPU 開關可解。</li>
+                        <li><strong>QWebEngine 內播 MP4 黑畫面：</strong>GPU off 時仍黑，推測為 codec 支援不足或解碼鏈無法啟動。</li>
+                        <li><strong>多路 4K 壓力：</strong>同場景 4K+4K+2K 影片在 WebView2 易卡死，msedgewebview2 進程過多且吃資源。</li>
+                    </ul>
+
+                    <div class="section-title">決策與方向</div>
+                    <ul>
+                        <li><strong>Web：</strong>維持外部 WebView2（<code>use_edge=true</code>），固定 profile 路徑，避免重建。</li>
+                        <li><strong>Video：</strong>改用 VLC 外部播放，硬體解碼開啟，循環播放，避免 QtMultimedia/QtWebEngine 崩潰風險。</li>
+                        <li><strong>視窗重用：</strong>以 Tag 固定重用視窗（<code>VLC_S{scene}_Z{zone}</code>），場景切換只做隱藏/顯示，不重建。</li>
+                    </ul>
+
+                    <div class="section-title">打包與部署</div>
+                    <ul>
+                        <li><strong>VLC 路徑規範：</strong>統一放在 <code>D:\ScreenSplitter\VLC\vlc.exe</code>。</li>
+                        <li><strong>build_release.py：</strong>打包時自動複製 <code>./VLC</code> 到輸出根目錄，確保正式版可找到 VLC。</li>
+                    </ul>
+
+                    <div class="section-title">下載注意</div>
+                    <ul>
+                        <li><strong>ZIP 下載失敗：</strong>出現「找不到中央目錄」代表 ZIP 不完整（常見於代理或斷線）。</li>
+                        <li><strong>建議方式：</strong>改用 PowerShell BITS 下載 + ZIP 檢查（PK 開頭）再解壓。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-02-08 -->
+            <div class="entry critical">
+                <span class="date-badge today">2026-02-08</span>
+                <div class="card">
+                    <h3 class="card-title">Video/WebView2 黑畫面修正與穩定性補強</h3>
+                    <div class="tags">
+                        <span class="tag tag-bug">Stability Fix</span>
+                        <span class="tag tag-infra">Window Mgmt</span>
+                        <span class="tag tag-ui">Focus</span>
+                    </div>
+
+                    <div class="section-title">修正與強化</div>
+                    <ul>
+                        <li><strong>Video HTML 輸出:</strong> create_video_html 改回本地檔案路徑供外部 WebView2 讀取，避免 URL/路徑混用造成載入失敗。</li>
+                        <li><strong>WebView2 存活策略:</strong> 以 tag 建立跨場景白名單，避免清理流程誤殺 video/webview2 child process。</li>
+                        <li><strong>Window 尋找與復原:</strong> 透過 title tag/command line 增強搜尋；偵測長時間找不到視窗時回收 stale WebView2。</li>
+                        <li><strong>Z-Order 與 Owner:</strong> 避免對 Chromium/WebView2 設定 Owner，並對 WebView2 視窗做有限度置頂/喚醒。</li>
+                        <li><strong>UI 觸發器:</strong> 懸浮按鈕改為不搶焦點，降低初次點擊閃黑。</li>
+                        <li><strong>EXE 視窗快取:</strong> 加入 EXE HWND cache，降低回場景時找不到視窗的機率。</li>
+                        <li><strong>關閉清理:</strong> 程式結束時清理 webview_player 子進程。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-02-07 (Afternoon) -->
+            <div class="entry critical">
+                <span class="date-badge today">2026-02-07</span>
+                <div class="card">
+                    <h3 class="card-title">WebView 架構統一與穩定性修復</h3>
+                    <div class="tags">
+                        <span class="tag tag-bug">Regression Fix</span>
+                        <span class="tag tag-infra">Optimization</span>
+                    </div>
+
+                    <div class="section-title">✅ 重大修復 (Critical Fixes)</div>
+                    <ul>
+                        <li><strong>MP4 白屏修復:</strong> 修正了 <code>create_video_html</code> 中 <code>abs_path</code>
+                            變數缺失導致的渲染失敗 (NameError)。</li>
+                        <li><strong>WebView 進程管理:</strong> 強制禁用舊版 "Use Edge" 設定，將所有網頁視窗整合回主程式 (Internal
+                            QWebEngineView)，解決了 WebViewPlayer.exe 過度生成的問題。</li>
+                    </ul>
+
+                    <div class="section-title">🛠️ 系統優化 (System Improvements)</div>
+                    <ul>
+                        <li><strong>打包瘦身:</strong> 移除未使用的 QtMultimedia 模組依賴。</li>
+                        <li><strong>自動化驗證:</strong> 確認 Python 環境路徑並成功執行 Release Build。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-02-06 (Night Shift) -->
+            <div class="entry critical">
+                <span class="date-badge today">2026-02-06 (Night Shift)</span>
+                <div class="card">
+                    <h3 class="card-title">多視窗管理與視窗隔離機制重明大升級</h3>
+                    <div class="tags">
+                        <span class="tag tag-infra">Core Logic</span>
+                        <span class="tag tag-bug">Stability Fix</span>
+                    </div>
+
+                    <div class="section-title">🛑 問題盤點 (Issues Addressed)</div>
+                    <ul>
+                        <li><strong>網址污染 (URL Pollution):</strong> 場景切換時，Scene 3 的瀏覽器錯誤重用了 Scene 2 的視窗，導致舊網址殘留。</li>
+                        <li><strong>視窗消失 (Disappearing Windows):</strong> 系統過度積極的清理機制誤殺了 Scene 1 的 EXE 和部分瀏覽器視窗。</li>
+                        <li><strong>視窗搶戲 (Z-Order Fighting / Coverage):</strong> 舊場景的 EXE (如 Scene 1) 在切換到 Scene 4
+                            後未被正確隱藏，覆蓋了新內容。</li>
+                    </ul>
+
+                    <div class="section-title">✅ 架構性修復 (Architectural Fixes)</div>
+                    <ul>
+                        <li><strong>完全隔離設定檔 (Total Profile Isolation):</strong> 引入
+                            <code>browser_data_S{scene}_{zone}</code> 命名規則。確保每個場景、每個 Zone 都有獨立的瀏覽器實體，徹底杜絕網址錯亂。</li>
+                        <li><strong>嚴格身分驗證 (Strict Profile Matching):</strong>
+                            <ul>
+                                <li><strong>瀏覽器:</strong> 強制檢查 Command Line 中的 Profile ID，確保 Zone 0 絕不會抓到 Zone 1 的視窗。
+                                </li>
+                                <li><strong>一般 EXE:</strong> 放寬檢查邏輯，僅比對 Process Name，防止誤判導致 Dashboard 消失。</li>
+                            </ul>
+                        </li>
+                        <li><strong>全域生命週期管理 (Life-cycle Management):</strong>
+                            <ul>
+                                <li><strong>持久化追蹤:</strong> 改進 <code>load_scene</code>，使用即使切換場景也不會被清除的
+                                    <code>all_managed_paths</code> 註冊表，確保系統永遠記得要管理哪些外部程式。</li>
+                                <li><strong>優化清理機制 (Cleanup Logic):</strong>
+                                    <ol>
+                                        <li><strong>白名單保護:</strong> 絕對不隱藏屬於當前場景 config 的活躍程式。</li>
+                                        <li><strong>強力清理:</strong> 對於判定為「孤兒」的程式，移除 Owner Window 檢查，強制隱藏該程序下所有視窗 (含
+                                            Dialog、Splash Screen)，解決 Scene 4 被覆蓋問題。</li>
+                                    </ol>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-02-06 (Tooling / WebView2 POC) -->
+            <div class="entry">
+                <span class="date-badge">2026-02-06 (Tooling / WebView2 POC)</span>
+                <div class="card">
+                    <h3 class="card-title">WebView2 原型驗證與工具鏈補強</h3>
+                    <div class="tags">
+                        <span class="tag tag-feat">Prototype</span>
+                        <span class="tag tag-infra">Tooling</span>
+                        <span class="tag tag-bug">Debug</span>
+                    </div>
+
+                    <div class="section-title">✅ 核心成果</div>
+                    <ul>
+                        <li><strong>WebView2 原型：</strong> 加入 <code>pywebview</code>
+                            單視窗與多視窗測試腳本（<code>test_webview_proto.py</code>、<code>test_webview_multi.py</code>），驗證多區域視窗布局與無邊框可行性。
+                        </li>
+                        <li><strong>打包流程：</strong> <code>build_release.py</code> 整合 WebViewPlayer 打包/部署拷貝流程，並補齊
+                            WebServer 的 templates/static 打包與發行批次腳本生成。</li>
+                        <li><strong>Web Server 控制：</strong> <code>web_server.py</code> 以 <code>DATA_DIR</code> 集中 IPC
+                            檔案，新增狀態離線判斷、啟動 Player API、螢幕枚舉端點，並在 frozen 模式寫入 log。</li>
+                    </ul>
+
+                    <div class="section-title">🧰 Debug / 維護工具</div>
+                    <ul>
+                        <li><strong>視窗無邊框驗證：</strong> <code>debug_window_fix.py</code> 提供 border strip / taskbar 隱藏測試流程。
+                        </li>
+                        <li><strong>瀏覽器偵測：</strong> <code>debug_browser.py</code> 快速檢查 Chrome/Edge 路徑、現行進程、測試啟動。</li>
+                        <li><strong>Log 讀取：</strong> <code>debug_log_reader.py</code> 快速擷取 Player debug log 關鍵訊息。</li>
+                        <li><strong>清理腳本：</strong> <code>cleanup_fix.py</code> / <code>cleanup_fix_debug.py</code> /
+                            <code>cleanup_final.py</code> 用於移除 <code>player.py</code> 內過期清理區塊。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-02-05 (Today) -->
+            <div class="entry critical">
+                <span class="date-badge today">2026-02-05</span>
+                <div class="card">
+                    <h3 class="card-title">CRITICAL: 系統渲染架構重構與崩潰修復</h3>
+                    <div class="tags">
+                        <span class="tag tag-bug">Critical Fix</span>
+                        <span class="tag tag-infra">Architecture</span>
+                        <span class="tag tag-infra">Stability</span>
+                    </div>
+
+                    <div class="section-title">🛑 事件描述 (Incident)</div>
+                    <p>系統在長時間運行或高負載下出現嚴重不穩定，Event Viewer 顯示大量 <strong>0xc0000005 (Access Violation)</strong> 與
+                        <strong>0xe0000008 (Kernel Exception)</strong> 錯誤。導致畫面卡頓、白屏，且因 Watchdog 機制導致無法正常關閉。
+                    </p>
+
+                    <div class="section-title">🔧 診斷分析 (Diagnosis)</div>
+                    <ul>
+                        <li><strong>0xc0000005:</strong> GPU 硬體加速與 QtWebEngine 發生記憶體衝突。</li>
+                        <li><strong>0xe0000008:</strong> Windows Defender/防毒軟體觸發 Renderer Code Integrity 檢查，強制殺死渲染子程序。
+                        </li>
+                        <li><strong>Zombie Process:</strong> <code>cmd.exe</code> (Watchdog) 在程式崩潰後無限重啟，導致 UI
+                            上的「關閉」按鈕無效。</li>
+                    </ul>
+
+                    <div class="section-title">✅ 解決方案 (Resolution) - v7:30 Stable</div>
+                    <ul>
+                        <li><strong>實作「終極安全模式」 (Ultimate Safe Mode):</strong> 完全棄用 GPU，改採 CPU 軟體渲染。</li>
+                        <li><strong>Flag 調整:</strong>
+                            <code>--disable-gpu --disable-opengl --disable-features=RendererCodeIntegrity</code>
+                        </li>
+                        <li><strong>實作 Force Quit:</strong> 在 Python 層加入 <code>psutil</code> 邏輯，主動搜尋並終結父程序 (Parent
+                            CMD)，解決無限重啟迴圈。</li>
+                    </ul>
+
+                    <div class="code-box">
+                        <div class="code-title">player.py (Flags update)</div>
+                        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu
+                        --disable-features=RendererCodeIntegrity,FlashDeprecationWarning --process-per-site"
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2026-02-04 -->
+            <div class="entry">
+                <span class="date-badge">2026-02-04</span>
+                <div class="card">
+                    <h3 class="card-title">API 功能擴充：資安事件統計</h3>
+                    <div class="tags">
+                        <span class="tag tag-feat">New Feature</span>
+                        <span class="tag tag-infra">Backend API</span>
+                    </div>
+                    <div class="section-title">功能實作</div>
+                    <ul>
+                        <li>新增 FastAPI 端點：<code>GET /api/events/{year}/{month}</code></li>
+                        <li>用途：統計並回傳指定月份的攻擊阻擋次數，供前端 Dashboard 呈現趨勢圖。</li>
+                        <li>維持既有 <code>iplist.netset</code> 下載功能穩定性。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-02-02 ~ 02-03 -->
+            <div class="entry">
+                <span class="date-badge">2026-02-02 ~ 03</span>
+                <div class="card">
+                    <h3 class="card-title">BIM Viewer 3D 體驗優化</h3>
+                    <div class="tags">
+                        <span class="tag tag-ui">UI/UX</span>
+                        <span class="tag tag-feat">Feature</span>
+                    </div>
+                    <div class="section-title">介面與功能改善</div>
+                    <ul>
+                        <li><strong>偽全螢幕 (Fake Fullscreen):</strong> 繞過瀏覽器安全性限制，實現佔滿視窗的沉浸式體驗。</li>
+                        <li><strong>UI 調整:</strong> 修復上方 LOGO 比例跑版問題，優化 Header 間距。</li>
+                        <li><strong>自動回復:</strong> 實作 WebGL Context Lost 偵測，當 3D 引擎崩潰時自動重整頁面。</li>
+                        <li><strong>Default View:</strong> 設定模型載入後自動轉向 ISO View (SE Top)。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-01-26 & 27 -->
+            <div class="entry">
+                <span class="date-badge">2026-01-26 ~ 27</span>
+                <div class="card">
+                    <h3 class="card-title">Web Admin 優化與打包發布工程</h3>
+                    <div class="tags">
+                        <span class="tag tag-infra">DevOps</span>
+                        <span class="tag tag-bug">Bug Fix</span>
+                        <span class="tag tag-ui">Admin UI</span>
+                    </div>
+                    <div class="section-title">後台改版</div>
+                    <ul>
+                        <li><strong>Layout 調整:</strong> 將播放器控制面板移至底部中央，解決操作不直覺的問題。</li>
+                        <li><strong>資安修正:</strong> 排除 Buffer Overflow 疑慮。</li>
+                    </ul>
+                    <div class="section-title">發布工程 (Release Engineering)</div>
+                    <ul>
+                        <li><strong>PyInstaller 修復:</strong> 解決 <code>TemplateNotFound</code> 錯誤，正確封裝 static/template
+                            資源。</li>
+                        <li><strong>Build Script:</strong> 建立 <code>build_release.py</code> 自動化打包流程。</li>
+                        <li><strong>Bug Fix:</strong> 修復「網頁重新整理後設定遺失」的持續性問題。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-01-22 & 23 -->
+            <div class="entry">
+                <span class="date-badge">2026-01-22 ~ 23</span>
+                <div class="card">
+                    <h3 class="card-title">桌面程式架構重構 (Desktop Refactoring)</h3>
+                    <div class="tags">
+                        <span class="tag tag-infra">Core Logic</span>
+                        <span class="tag tag-ui">Windows API</span>
+                    </div>
+                    <div class="section-title">核心功能開發</div>
+                    <ul>
+                        <li><strong>無邊框整合:</strong> 使用 Win32 API 強制移除嵌入 EXE (如 Tableau, RDP) 的視窗標題列。</li>
+                        <li><strong>Playlist Engine:</strong> 實作 Web/Video/EXE 混合輪播邏輯。</li>
+                        <li><strong>即時預覽 (Live Preview):</strong> 修復 Web Admin 中 Grid 修改時預覽不更新的問題。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2026-01-15 -->
+            <div class="entry">
+                <span class="date-badge">2026-01-15</span>
+                <div class="card">
+                    <h3 class="card-title">考勤系統整合專案</h3>
+                    <div class="tags">
+                        <span class="tag tag-feat">Integration</span>
+                    </div>
+                    <ul>
+                        <li>介接海康威視 (Hikvision) ISAPI，實作門禁刷卡資料即時同步。</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <div style="text-align: center; color: #95a5a6; margin-top: 50px; font-size: 0.9em;">
+            Generated by Antigravity Assistant • Last Updated: 2026-02-09
+        </div>
+    </div>
+
+</body>
+
+</html>

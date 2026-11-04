@@ -1,0 +1,77 @@
+# ScreenSplitter: what stays out of git.
+# Source, templates, docs, tests, icons and build scripts go in.
+# Environments, build outputs, site data, logs and one-off scratch files stay out.
+
+# --- Python environments / caches ---
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# --- Build outputs and installers ---
+build/
+dist/
+Release/
+*.spec
+ScreenSplitter_Setup*.exe
+
+# --- Large third-party binaries (copied to a machine once by hand) ---
+VLC/
+vlc.exe
+*.mp4
+
+# --- Site data: never commit (per-machine config, profiles, browser data, IPC, access token) ---
+config.json
+config.json.*
+config.json_
+config - *.json
+api_access.json
+profiles/
+web_profile/
+web_profile_ext/
+chrome_profile/
+chrome_test_profile/
+chrome_test_profile_debug/
+wp/
+tmp_web_test/
+ipc_cmd.txt
+ipc_status.json
+run_state.json
+webview_cmd.json
+webview_status.json
+webview_status.txt
+
+# --- Logs and diagnostic dumps ---
+*.log
+err/
+*_log.txt
+*_output.txt
+*_dump.txt
+debug*.txt
+output.txt
+stdout.txt
+stderr.txt
+startup_crash.txt
+startup_early_exit.txt
+process_list*.txt
+patch_log*.txt
+loop_*.txt
+
+# --- One-off debug / repair scripts, scratch copies, abandoned FastAPI prototype ---
+debug_*.py
+fix_*.py
+check_*.py
+cleanup_*.py
+inspect_lines.py
+normalize_player.py
+sanitize_player.py
+verify_fix.py
+player1.py
+*_temp_snippet
+tmp_*
+main.py
+run.bat
+static/index.html
+static/app.js
+static/LK__.gif
+* - 複製.*

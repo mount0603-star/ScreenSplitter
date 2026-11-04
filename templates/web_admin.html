@@ -1,0 +1,1976 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亞翔輪播控制</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 定義全域變數：Neon Theme (霓虹主題) 配色 */
+            --bg-deep: #050510;
+            --bg-panel: rgba(20, 25, 40, 0.7);
+            --bg-element: rgba(30, 35, 55, 0.6);
+            --neon-cyan: #00f3ff;
+            --neon-blue: #0066ff;
+            --neon-red: #ff0055;
+            --text-main: #e0faff;
+            --text-dim: #607d8b;
+            --glass-border: 1px solid rgba(0, 243, 255, 0.1);
+            --glass-blur: blur(10px);
+            --radius-main: 4px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(0, 243, 255, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.05) 0%, transparent 20%);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-blue);
+            border-radius: 3px;
+        }
+
+        /* Header */
+        header {
+            background: rgba(10, 10, 15, 0.9);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 0 20px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+            z-index: 100;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .brand-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .header-actions .btn {
+            width: auto;
+            margin-bottom: 0;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .header-actions .btn:focus-visible {
+            outline: 2px solid var(--neon-cyan);
+            outline-offset: 3px;
+        }
+
+        .app-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .profile-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 18px;
+        }
+
+        .profile-bar select,
+        .profile-bar input {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            color: var(--text-main);
+            height: 36px;
+            padding: 0 10px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .profile-bar select:focus,
+        .profile-bar input:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.18);
+        }
+
+        .profile-create {
+            display: inline-flex;
+            align-items: center;
+            height: 36px;
+            background: transparent;
+        }
+
+        .profile-create input {
+            width: 110px;
+            height: 34px;
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            border-right: 0;
+            background: rgba(0, 0, 0, 0.28);
+        }
+
+        .profile-add-btn {
+            height: 34px;
+            min-width: 58px;
+            padding: 0 14px;
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            background: rgba(0, 243, 255, 0.08);
+            color: var(--text-main);
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.16s ease;
+        }
+
+        .profile-add-btn:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 14px rgba(0, 243, 255, 0.35);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        /* Layout (版面配置) */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Left Panel */
+        .left-panel {
+            width: 300px;
+            background: var(--bg-panel);
+            border-right: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+            transition: transform 0.3s ease;
+            z-index: 90;
+        }
+
+        .panel-header {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--neon-cyan);
+            font-weight: 600;
+            border-bottom: var(--glass-border);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #playlist {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 10px;
+            margin: 0;
+        }
+
+        .playlist-item {
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 243, 255, 0.05) 100%);
+            border-left: 2px solid transparent;
+            margin-bottom: 5px;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 98% 100%, 0 100%);
+        }
+
+        .playlist-item:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-left-color: var(--neon-cyan);
+            padding-left: 20px;
+        }
+
+        .playlist-item.selected {
+            background: rgba(0, 243, 255, 0.15);
+            border-left: 3px solid var(--neon-cyan);
+            box-shadow: inset 10px 0 20px -10px rgba(0, 243, 255, 0.3);
+        }
+
+        .playlist-item.active .scene-name {
+            color: #fff;
+            text-shadow: 0 0 5px var(--neon-cyan);
+        }
+
+        .scene-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .playlist-actions {
+            padding: 15px;
+            border-top: var(--glass-border);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Right Panel */
+        .right-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: radial-gradient(circle at center, transparent 0%, #000 150%);
+        }
+
+        .top-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-panel);
+            border: var(--glass-border);
+            border-radius: var(--radius-main);
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: var(--glass-blur);
+            margin-bottom: 20px;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            opacity: 0.5;
+        }
+
+        .card-title {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #050510;
+            padding: 0 10px;
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            text-transform: uppercase;
+            white-space: nowrap;
+            /* Prevent truncation */
+            z-index: 5;
+        }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .form-label {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        input,
+        select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+            border-bottom: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+            box-shadow: 0 2px 10px rgba(0, 243, 255, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #fff;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--text-dim);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        /* Media Controls */
+        .controls-card .card-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .control-row-secondary {
+            gap: 10px;
+        }
+
+        .btn-media {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+        }
+
+        .btn-media:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-cyan);
+            transform: scale(1.1);
+        }
+
+        .btn-toggle {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+            border-width: 3px;
+        }
+
+        .btn-control-secondary {
+            min-width: 86px;
+            height: 34px;
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            background: rgba(0, 0, 0, 0.35);
+            color: var(--text-main);
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+
+        .btn-control-secondary:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.18);
+        }
+
+        .btn-control-secondary.danger {
+            border-color: rgba(255, 0, 85, 0.45);
+        }
+
+        .btn-control-secondary.danger:hover {
+            background: rgba(255, 0, 85, 0.18);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(255, 0, 85, 0.22);
+        }
+
+        /* Preview */
+        #preview-canvas {
+            width: 100%;
+            /* Limit height to avoid taking over screen, preserve aspect ratio logic in JS */
+            max-height: 50vh;
+            margin: 0 auto;
+            background: #000;
+            border: 2px solid var(--bg-element);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+            background-image:
+                linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .preview-zone {
+            position: absolute;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 2rem;
+            text-shadow: 0 0 10px var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(2px);
+        }
+
+        .colliding {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+            background: rgba(255, 0, 85, 0.1);
+            box-shadow: 0 0 15px var(--neon-red);
+        }
+
+        /* Resize Handle */
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, transparent 50%, var(--neon-cyan) 50%);
+            cursor: se-resize;
+            z-index: 10;
+        }
+
+        /* Zone Editor Items */
+        #zones-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .zone-editor-item {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px;
+            border-left: 3px solid var(--text-dim);
+            transition: all 0.3s;
+        }
+
+        .zone-editor-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-left-color: var(--neon-cyan);
+        }
+
+        .zone-header {
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Status Indicators */
+        .status-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timer-val {
+            font-family: monospace;
+            color: var(--neon-cyan);
+        }
+
+        .circle-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            box-shadow: 0 0 5px currentColor;
+        }
+
+        .circle-active {
+            background: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .circle-paused {
+            background: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-top: 15px;
+            /* Prevent title clipping */
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            overflow: hidden;
+            /* Prevent scroll explosion */
+        }
+
+        .col-left,
+        .col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 250px);
+            padding-right: 5px;
+            /* space for scrollbar */
+            padding-top: 15px;
+            /* Prevent title clipping */
+            padding-left: 5px;
+            /* Prevent left border/shadow clipping */
+        }
+
+        .settings-card,
+        .controls-card {
+            min-width: 300px;
+        }
+
+        /* Compact Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+        }
+
+        input,
+        select {
+            padding: 6px 10px;
+            font-size: 0.95rem;
+        }
+
+        /* Cyberpunk Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1a1a2e;
+            transition: .4s;
+            border-radius: 22px;
+            border: 1px solid #444;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #888;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: rgba(0, 243, 255, 0.2);
+            border-color: #00f3ff;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+            background-color: #00f3ff;
+            box-shadow: 0 0 10px #00f3ff;
+        }
+
+        /* Header Delete Button (X style) */
+        .btn-header-delete {
+            background: transparent;
+            border: none;
+            color: #555;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            transition: all 0.3s;
+            float: right;
+            line-height: 1;
+        }
+
+        .btn-header-delete:hover {
+            color: #ff0055;
+            text-shadow: 0 0 8px #ff0055;
+            transform: scale(1.2);
+        }
+
+        /* Screen Selector Styles */
+        .screen-selector-container {
+            grid-column: 1 / -1;
+            /* Span full width of grid */
+            display: none;
+            /* Hidden by default */
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px dashed #444;
+            margin: 10px 0;
+            border-radius: 8px;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .screen-box {
+            width: 120px;
+            height: 80px;
+            border: 2px solid #555;
+            background: #222;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .screen-box:hover {
+            border-color: #888;
+            transform: scale(1.05);
+        }
+
+        .screen-box.active {
+            border-color: #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        .screen-box .screen-id {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .screen-box .screen-res {
+            font-size: 11px;
+            color: #ccc;
+            margin-top: 4px;
+        }
+    </style>
+
+    <style>
+        /* Responsive Overrides (Must be last) */
+        @media (max-width: 1024px) {
+            header {
+                padding: 8px 15px;
+                height: auto;
+                min-height: 60px;
+                flex-shrink: 0;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .brand-wrapper, .profile-bar {
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .main-container {
+                flex-direction: column;
+            }
+
+            /* Sidebar hidden by default on mobile */
+            .left-panel {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                transform: translateX(-100%);
+            }
+
+            .left-panel.show {
+                transform: translateX(0);
+            }
+
+            .right-panel {
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Stack grids */
+            .header-grid,
+            .content-grid {
+                grid-template-columns: 1fr !important;
+                overflow: visible !important;
+            }
+
+            /* Allow scrolling */
+            .col-left,
+            .col-right {
+                max-height: none !important;
+                overflow: visible !important;
+                padding-right: 0;
+            }
+
+            /* Adjust Forms */
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .form-label {
+                text-align: left;
+                margin-top: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .playlist-actions .btn {
+                width: 50%;
+            }
+
+            .app-title {
+                display: none;
+            }
+
+            .card {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand-wrapper">
+            <button class="mobile-menu-btn" onclick="document.querySelector('.left-panel').classList.toggle('show')">☰
+                選單 MENU</button>
+            <img src="{{ url_for('static', filename='LK.gif') }}" alt="Logo"
+                style="height: 40px; vertical-align: middle;">
+            <div class="app-title">輪播控制台</div>
+            <div class="profile-bar">
+                <span>Profile</span>
+                <select id="profile-select" onchange="switchProfile(this.value)"></select>
+                <div class="profile-create">
+                    <input id="new-profile-id" type="text" placeholder="screen-2">
+                    <button class="profile-add-btn" onclick="createProfile()" title="新增 Profile">新增</button>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a class="btn btn-secondary" href="{{ url_for('usage_help') }}" target="_blank" rel="noopener"
+                title="另開使用說明，保留目前編輯內容">使用說明</a>
+            <button class="btn btn-primary" onclick="saveConfig()" style="width: auto;">
+                💾 <span style="display: none; display: inline-block;">儲存 SAVE</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Playlist Panel -->
+        <div class="left-panel">
+            <div class="panel-header">
+                播放序列 PLAYLIST
+                <button class="mobile-menu-btn" onclick="document.querySelector('.left-panel').classList.remove('show')"
+                    style="border:none; font-size:1.2rem;">✕</button>
+            </div>
+            <ul id="playlist"></ul>
+            <div class="playlist-actions">
+                <button class="btn btn-secondary" onclick="addScene()">＋ 新增 ADD</button>
+                <button class="btn btn-secondary" onclick="deleteScene()">－ 刪除 DEL</button>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+
+            <div class="header-grid">
+                <!-- Global Settings (Aligns Left) -->
+                <div class="card settings-card" style="width: auto;">
+                    <div class="card-title">全域系統配置 GLOBAL CONFIG</div>
+                    <div class="form-grid" style="justify-content: center;">
+                        <span class="form-label">解析度 RES</span>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="global-w" placeholder="W" oninput="updateGridPreview(false)">
+                            <input type="number" id="global-h" placeholder="H" oninput="updateGridPreview(false)">
+                            <button class="btn btn-secondary" onclick="detectResolution()"
+                                style="padding: 2px 8px; font-size: 0.8rem;">偵測</button>
+                        </div>
+
+                        <!-- Screen Selector Container -->
+                        <div id="screen-selector" class="screen-selector-container"></div>
+
+                        <!-- ALARMS -->
+                        <span class="form-label">中餐 Lunch</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="alarm-lunch-on">
+                                <span class="slider"></span>
+                            </label>
+                            <input type="time" id="alarm-lunch-time" class="input-dark">
+                        </div>
+
+                        <span class="form-label">起床 Wake</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="alarm-wake-on">
+                                <span class="slider"></span>
+                            </label>
+                            <input type="time" id="alarm-wake-time" class="input-dark">
+                        </div>
+
+                        <span class="form-label">下班 Off</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="alarm-off-on">
+                                <span class="slider"></span>
+                            </label>
+                            <input type="time" id="alarm-off-time" class="input-dark">
+                        </div>
+
+                        <span class="form-label">重啟 Restart</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="restart-minutes" class="input-dark" min="0" max="1440" step="5"
+                                style="max-width: 120px;">
+                            <span style="color: var(--text-dim); font-size: 0.9rem;">排程重啟間隔（分鐘，0 = 關閉）</span>
+                        </div>
+
+                        <span class="form-label">Web 自啟 Auto</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="web-autostart-player">
+                                <span class="slider"></span>
+                            </label>
+                            <span style="color: var(--text-dim); font-size: 0.9rem;">WebServer 啟動時自動啟動 Player</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Player Controls (Aligns Right) -->
+                <div class="card controls-card" style="width: auto; display: flex; flex-direction: column;">
+                    <div class="card-title">播放控制器 PLAYER</div>
+                    <div class="card-content"
+                        style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                        <div class="control-row">
+                            <button class="btn-media" onclick="sendCmd('PREV')" title="上一頁">⏮</button>
+                            <button class="btn-media btn-toggle" id="btn-toggle" onclick="togglePlay()"
+                                title="播放 / 暫停">▶</button>
+                            <button class="btn-media" onclick="sendCmd('NEXT')" title="下一頁">⏭</button>
+                        </div>
+                        <div class="control-row control-row-secondary">
+                            <button class="btn-control-secondary" onclick="sendCmd('EXIT')" title="關閉目前 Profile Player">關閉</button>
+                            <button class="btn-control-secondary danger" onclick="sendCmdAll('EXIT')"
+                                title="關閉全部 Profile Player">全部關閉</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="content-grid">
+
+                <!-- LEFT COLUMN: Settings & Zones -->
+                <div class="col-left">
+                    <!-- Scene Settings -->
+                    <div class="card settings-card">
+                        <div class="card-title">場景參數設定 SCENE SETTINGS</div>
+                        <div class="form-grid">
+                            <span class="form-label">名稱 NAME</span>
+                            <input type="text" id="edit-name" oninput="updateCurrentScene()">
+
+                            <span class="form-label">時長 TIME(s)</span>
+                            <input type="number" id="edit-duration" min="0" step="1" oninput="updateCurrentScene()">
+
+                            <span class="form-label">佈局 GRID</span>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="edit-rows" min="1" max="10" value="1"
+                                    oninput="updateGridPreview()">
+                                <span style="color:var(--text-dim)">x</span>
+                                <input type="number" id="edit-cols" min="1" max="10" value="1"
+                                    oninput="updateGridPreview()">
+                            </div>
+
+                            <span class="form-label">操作 ACT</span>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 5px 15px; flex:1;"
+                                    onclick="autoArrange()">自動排列 AUTO</button>
+                                <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 5px 15px; flex:1;"
+                                    onclick="syncZone0Size()">同步尺寸 SYNC</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zone Content Editor -->
+                    <div class="card">
+                        <div class="card-title">格子內容編輯 ZONE CONTENT</div>
+                        <div id="zones-container">
+                            <!-- Zone Items rendered via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Preview -->
+                <div class="col-right">
+                    <div class="card" style="height: 100%; display:flex; flex-direction:column;">
+                        <div class="card-title">視覺預覽 VISUAL PREVIEW</div>
+                        <div
+                            style="flex:1; display:flex; align-items:center; justify-content:center; background:#000; min-height: 300px;">
+                            <div id="preview-canvas"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+
+        </div>
+    </div>
+
+    <script>
+        let config = { playlist: [] };
+        let currentIndex = 0;
+        let dragSrcEl = null;
+        let playerStatus = { offline: true };
+        let currentProfile = localStorage.getItem('screensplitter_profile') || 'default';
+        let profiles = [];
+        const CONTROL_PROFILE_ID = 'default';
+        let statusPollInFlight = false;
+
+        window.onload = async () => {
+            await loadProfiles();
+            await loadConfig();
+            setInterval(fetchStatus, 1000);
+        };
+
+        function isControlProfile(profileId = currentProfile) {
+            return (profileId || CONTROL_PROFILE_ID) === CONTROL_PROFILE_ID;
+        }
+
+        function setAlarmControlsEnabled(enabled) {
+            [
+                'alarm-lunch-on',
+                'alarm-lunch-time',
+                'alarm-wake-on',
+                'alarm-wake-time',
+                'alarm-off-on',
+                'alarm-off-time'
+            ].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = !enabled;
+            });
+        }
+
+        function apiUrl(path) {
+            const sep = path.includes('?') ? '&' : '?';
+            return `${path}${sep}profile=${encodeURIComponent(currentProfile)}`;
+        }
+
+        async function loadProfiles() {
+            try {
+                const res = await fetch(apiUrl('/api/profiles'));
+                const data = await res.json();
+                profiles = data.profiles || [];
+                if (!profiles.some(p => p.id === currentProfile)) {
+                    currentProfile = 'default';
+                    localStorage.setItem('screensplitter_profile', currentProfile);
+                }
+                const sel = document.getElementById('profile-select');
+                sel.innerHTML = '';
+                profiles.forEach((p) => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.id;
+                    if (p.id === currentProfile) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                console.error("Load profiles failed", e);
+            }
+        }
+
+        async function switchProfile(profileId) {
+            currentProfile = profileId || 'default';
+            localStorage.setItem('screensplitter_profile', currentProfile);
+            currentIndex = 0;
+            await loadConfig();
+            await fetchStatus();
+        }
+
+        async function createProfile() {
+            const input = document.getElementById('new-profile-id');
+            const id = (input.value || '').trim();
+            if (!id) {
+                alert('請輸入 profile 名稱，例如 screen-2');
+                return;
+            }
+            const res = await fetch('/api/profiles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, source: currentProfile || 'default' })
+            });
+            const payload = await res.json();
+            if (!res.ok || payload.error) {
+                alert('建立失敗: ' + (payload.error || res.status));
+                return;
+            }
+            currentProfile = payload.profile;
+            localStorage.setItem('screensplitter_profile', currentProfile);
+            input.value = '';
+            await loadProfiles();
+            await loadConfig();
+        }
+
+        async function loadConfig() {
+            /**
+             * 載入設定檔
+             * 從後端 API 获取 config.json 內容。
+             * 若無全域設定則給予預設值 (1920x1080)。
+             */
+            try {
+                const res = await fetch(apiUrl('/api/config'));
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                config = await res.json();
+
+                // Initialize Global Defaults (初始化全域預設值)
+                if (!config.global_settings) config.global_settings = { screen_width: 1920, screen_height: 1080 };
+
+                document.getElementById('global-w').value = config.global_settings.screen_width || 1920;
+                document.getElementById('global-h').value = config.global_settings.screen_height || 1080;
+
+                // Load Alarms (載入鬧鐘設定)
+                document.getElementById('alarm-lunch-on').checked = config.global_settings.alarm_lunch_enabled || false;
+                document.getElementById('alarm-lunch-time').value = config.global_settings.alarm_lunch_time || "12:20";
+
+                document.getElementById('alarm-wake-on').checked = config.global_settings.alarm_wake_enabled || false;
+                document.getElementById('alarm-wake-time').value = config.global_settings.alarm_wake_time || "13:30";
+
+                document.getElementById('alarm-off-on').checked = config.global_settings.alarm_off_enabled || false;
+                document.getElementById('alarm-off-time').value = config.global_settings.alarm_off_time || "17:30";
+                if (!isControlProfile()) {
+                    document.getElementById('alarm-lunch-on').checked = false;
+                    document.getElementById('alarm-wake-on').checked = false;
+                    document.getElementById('alarm-off-on').checked = false;
+                }
+                setAlarmControlsEnabled(isControlProfile());
+
+                // Scheduled restart interval (minutes)
+                const restartMinsRaw = parseInt(config.global_settings.scheduled_restart_minutes, 10);
+                const restartMins = Number.isFinite(restartMinsRaw) ? restartMinsRaw : 60;
+                document.getElementById('restart-minutes').value = Math.min(1440, Math.max(0, restartMins));
+                document.getElementById('web-autostart-player').checked = !!config.global_settings.web_autorun_player;
+
+                renderPlaylist();
+                loadSceneDetails(0);
+            } catch (e) { console.error("Load config failed", e); }
+        }
+
+        let screenList = [];
+
+        async function detectResolution() {
+            const container = document.getElementById('screen-selector');
+
+            // Toggle Logic: If visible, hide it.
+            if (container.style.display === 'flex') {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/screens');
+                screenList = await res.json();
+
+                if (!screenList || screenList.length === 0) {
+                    alert("未偵測到任何螢幕 (No screens detected).");
+                    return;
+                }
+
+                container.innerHTML = '';
+                container.style.display = 'flex'; // Show it
+
+                screenList.forEach((s, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'screen-box';
+                    div.innerHTML = `
+                        <div class="screen-id">${s.id + 1}</div>
+                        <div class="screen-res">${s.width}x${s.height}</div>
+                    `;
+
+                    // Check if active (match current config)
+                    const currX = config.global_settings?.screen_x;
+                    const currY = config.global_settings?.screen_y;
+                    const currDevice = String(config.global_settings?.screen_device || '').toUpperCase();
+                    const candidateDevice = String(s.device || '').toUpperCase();
+
+                    let isActive = false;
+                    if (currDevice && candidateDevice) {
+                        isActive = currDevice === candidateDevice;
+                    } else if (currX !== undefined && currY !== undefined) {
+                        // Loose comparison (string/int)
+                        if (currX == s.left && currY == s.top) isActive = true;
+                    } else {
+                        // Default to Screen 1 if nothing saved
+                        if (idx === 0) isActive = true;
+                    }
+
+                    if (isActive) div.classList.add('active');
+
+                    div.onclick = () => selectScreen(idx);
+                    container.appendChild(div);
+                });
+
+            } catch (e) {
+                console.error(e);
+                alert("偵測失敗 (Detect Failed): " + e);
+            }
+        }
+
+        function scaleAllZones(oldW, oldH, newW, newH) {
+            oldW = Number(oldW);
+            oldH = Number(oldH);
+            newW = Number(newW);
+            newH = Number(newH);
+            if (!oldW || !oldH || !newW || !newH) return;
+            if (oldW === newW && oldH === newH) return;
+
+            const sx = newW / oldW;
+            const sy = newH / oldH;
+            (config.playlist || []).forEach((scene) => {
+                (scene.zones || []).forEach((zone) => {
+                    ["x", "w"].forEach((field) => {
+                        if (Number.isFinite(Number(zone[field]))) {
+                            zone[field] = Math.round(Number(zone[field]) * sx);
+                        }
+                    });
+                    ["y", "h"].forEach((field) => {
+                        if (Number.isFinite(Number(zone[field]))) {
+                            zone[field] = Math.round(Number(zone[field]) * sy);
+                        }
+                    });
+                });
+            });
+        }
+
+        function setGlobalCanvasSize(newW, newH, scaleZones = true) {
+            if (!config.global_settings) config.global_settings = {};
+            const oldW = Number(config.global_settings.screen_width) || newW;
+            const oldH = Number(config.global_settings.screen_height) || newH;
+            if (scaleZones) {
+                scaleAllZones(oldW, oldH, newW, newH);
+            }
+            config.global_settings.screen_width = newW;
+            config.global_settings.screen_height = newH;
+            document.getElementById('global-w').value = newW;
+            document.getElementById('global-h').value = newH;
+        }
+
+        async function selectScreen(idx) {
+            if (!screenList[idx]) return;
+            const s = screenList[idx];
+
+            // Update Config
+            if (!config.global_settings) config.global_settings = {};
+            setGlobalCanvasSize(s.width, s.height, true);
+            config.global_settings.screen_x = s.left;
+            config.global_settings.screen_y = s.top;
+            config.global_settings.screen_device = s.device || '';
+
+            // Update Visuals (Highlight selected)
+            const container = document.getElementById('screen-selector');
+            Array.from(container.children).forEach((child, i) => {
+                if (i === idx) child.classList.add('active');
+                else child.classList.remove('active');
+            });
+
+            // Refresh Preview
+            updateGridPreview(true);
+
+            // Auto Save
+            await saveConfig();
+        }
+
+        async function saveConfig() {
+            /**
+             * 儲存設定檔
+             * 將目前前端的 config 物件 (包含播放清單、全域設定) 傳送回後端寫入檔案。
+             */
+            try {
+                // Read Global Settings (讀取全域解析度設定)
+                const gw = parseInt(document.getElementById('global-w').value) || 1920;
+                const gh = parseInt(document.getElementById('global-h').value) || 1080;
+                if (!config.global_settings) config.global_settings = {};
+                setGlobalCanvasSize(gw, gh, true);
+
+                // Save Alarms (儲存鬧鐘設定)
+                const controlProfile = isControlProfile();
+                config.global_settings.alarm_lunch_enabled = controlProfile && document.getElementById('alarm-lunch-on').checked;
+                config.global_settings.alarm_lunch_time = document.getElementById('alarm-lunch-time').value;
+
+                config.global_settings.alarm_wake_enabled = controlProfile && document.getElementById('alarm-wake-on').checked;
+                config.global_settings.alarm_wake_time = document.getElementById('alarm-wake-time').value;
+
+                config.global_settings.alarm_off_enabled = controlProfile && document.getElementById('alarm-off-on').checked;
+                config.global_settings.alarm_off_time = document.getElementById('alarm-off-time').value;
+
+                // Save scheduled restart interval (minutes)
+                let restartMins = parseInt(document.getElementById('restart-minutes').value, 10);
+                if (!Number.isFinite(restartMins)) restartMins = 60;
+                restartMins = Math.max(0, Math.min(1440, restartMins));
+                config.global_settings.scheduled_restart_minutes = restartMins;
+                config.global_settings.web_autorun_player = document.getElementById('web-autostart-player').checked;
+
+                // These are fixed runtime defaults in player.py (always ON).
+                delete config.global_settings.cleanup_prev_scene;
+                delete config.global_settings.webview_host_mode;
+
+                // Advanced host tuning moved to player.py defaults (hidden from WebAdmin UI)
+                const hiddenHostKeys = [
+                    'webview_host_recovery_mode',
+                    'webview_host_fallback_to_standalone',
+                    'webview_missing_timeout_sec',
+                    'webview_host_restart_cooldown_sec',
+                    'webview_host_recovery_cooldown_sec',
+                    'webview_tag_cooldown_sec'
+                ];
+                hiddenHostKeys.forEach((k) => {
+                    if (Object.prototype.hasOwnProperty.call(config.global_settings, k)) {
+                        delete config.global_settings[k];
+                    }
+                });
+
+
+                config._profile = currentProfile;
+                const res = await fetch(apiUrl('/api/config'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const payload = await res.json();
+                if (!res.ok || payload.error) {
+                    throw new Error(payload.error || `HTTP ${res.status}`);
+                }
+                if (payload.config) {
+                    config = payload.config;
+                }
+                await fetch(apiUrl('/api/cmd'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: 'RELOAD', profile: currentProfile })
+                });
+                await fetchStatus();
+                alert("設定已儲存！");
+            } catch (e) { alert("儲存失敗: " + e); }
+        }
+
+        // --- Playlist & DragDrop (播放清單與拖放排序) ---
+        function renderPlaylist() {
+            const list = document.getElementById('playlist');
+            list.innerHTML = '';
+
+            config.playlist.forEach((scene, index) => {
+                const li = document.createElement('li');
+                li.className = 'playlist-item';
+                if (index === currentIndex) li.classList.add('selected');
+                li.draggable = true;
+                li.setAttribute('data-index', index);
+
+                li.innerHTML = `
+                <span class="scene-name">${scene.name || "Unnamed"}</span>
+                <div class="status-wrapper" id="status-${index}"></div>
+            `;
+
+                // 點擊事件: 切換編輯場景
+                li.onclick = () => {
+                    currentIndex = index;
+                    renderPlaylist();
+                    loadSceneDetails(index);
+                };
+
+                // 雙擊事件: 即時跳轉播放
+                li.ondblclick = (e) => {
+                    e.preventDefault(); // Prevent text selection if needed
+                    sendCmd('JUMP ' + index);
+                };
+
+                // Drag Events (拖拉排序邏輯)
+                li.addEventListener('dragstart', function (e) {
+                    dragSrcEl = this;
+                    e.dataTransfer.effectAllowed = 'move';
+                    this.classList.add('dragging');
+                });
+                li.addEventListener('dragover', function (e) {
+                    if (e.preventDefault) e.preventDefault();
+                    return false;
+                });
+                li.addEventListener('drop', function (e) {
+                    if (e.stopPropagation) e.stopPropagation();
+                    const srcIdx = parseInt(dragSrcEl.getAttribute('data-index'));
+                    const targetIdx = parseInt(this.getAttribute('data-index'));
+                    if (srcIdx !== targetIdx) {
+                        const item = config.playlist.splice(srcIdx, 1)[0];
+                        config.playlist.splice(targetIdx, 0, item);
+                        if (currentIndex === srcIdx) currentIndex = targetIdx;
+                        else if (currentIndex === targetIdx) currentIndex = srcIdx;
+                        renderPlaylist();
+                    }
+                    return false;
+                });
+                li.addEventListener('dragend', function () {
+                    this.classList.remove('dragging');
+                });
+
+                list.appendChild(li);
+            });
+        }
+
+        // --- Scene Logic ---
+        function loadSceneDetails(index) {
+            if (!config.playlist[index]) return;
+            currentIndex = index;
+            const scene = config.playlist[index];
+
+            document.getElementById('edit-name').value = scene.name;
+            document.getElementById('edit-duration').value = Number.isFinite(Number(scene.duration)) ? Number(scene.duration) : 10;
+            document.getElementById('edit-rows').value = scene.rows || 1;
+            document.getElementById('edit-cols').value = scene.cols || 1;
+
+            updateGridPreview(false);
+            renderZoneEditor(scene);
+        }
+
+        function parseDurationSeconds(value) {
+            const duration = parseInt(value, 10);
+            if (!Number.isFinite(duration)) return 10;
+            return Math.max(0, duration);
+        }
+
+        function updateCurrentScene() {
+            if (!config.playlist[currentIndex]) return;
+            const scene = config.playlist[currentIndex];
+            scene.name = document.getElementById('edit-name').value;
+            scene.duration = parseDurationSeconds(document.getElementById('edit-duration').value);
+
+            const li = document.getElementById('playlist').children[currentIndex];
+            if (li) {
+                li.querySelector('.scene-name').textContent = scene.name;
+                const wrapper = li.querySelector('.status-wrapper');
+                if (wrapper && (!playerStatus || playerStatus.scene_idx !== currentIndex || playerStatus.offline)) {
+                    wrapper.innerHTML = scene.duration === 0 ? '<span class="timer-val">固定</span>' : '';
+                }
+            }
+        }
+
+        function updateGridPreview(writeBack = true) {
+            const rows = parseInt(document.getElementById('edit-rows').value) || 1;
+            const cols = parseInt(document.getElementById('edit-cols').value) || 1;
+
+            if (writeBack && config.playlist[currentIndex]) {
+                config.playlist[currentIndex].rows = rows;
+                config.playlist[currentIndex].cols = cols;
+                renderZoneEditor(config.playlist[currentIndex]);
+            }
+
+            const canvas = document.getElementById('preview-canvas');
+            canvas.innerHTML = '';
+
+            const scene = config.playlist[currentIndex];
+            const gw = parseInt(document.getElementById('global-w').value) || config.global_settings.screen_width || 1920;
+            const gh = parseInt(document.getElementById('global-h').value) || config.global_settings.screen_height || 1080;
+
+            const gridW = Math.floor(gw / cols);
+            const gridH = Math.floor(gh / rows);
+
+            // const canvas = document.getElementById('preview-canvas'); // Removed duplicate
+            canvas.innerHTML = ''; // Always clear for full re-render
+
+            // Apply dynamic aspect ratio
+            canvas.style.aspectRatio = `${gw} / ${gh}`;
+
+            // Use Actual Zones Length, NOT Grid Calc
+            // This allows user to delete zones and have gaps
+            if (!scene.zones) scene.zones = [];
+            const count = scene.zones.length;
+
+            for (let i = 0; i < count; i++) {
+                if (!scene.zones[i]) scene.zones[i] = { id: i, type: 'web', content: '' };
+                const zone = scene.zones[i];
+
+                if (zone.x === undefined || zone.y === undefined) {
+                    const r = Math.floor(i / cols);
+                    const c = i % cols;
+                    zone.x = c * gridW;
+                    zone.y = r * gridH;
+                    zone.w = gridW;
+                    zone.h = gridH;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'preview-zone';
+                div.textContent = i;
+                div.setAttribute('data-idx', i);
+
+                // Allow Focus for hotkeys
+                div.tabIndex = 0;
+
+                // Check collision initially
+                if (checkCollision(currentIndex, i)) {
+                    div.classList.add('colliding');
+                }
+
+                // Active Highlight
+                if (i === activeZoneIdx) {
+                    div.classList.add('active');
+                }
+
+                const canvasW = canvas.clientWidth;
+                const canvasH = canvas.clientHeight;
+
+                const scaleX = canvasW / gw;
+                const scaleY = canvasH / gh;
+
+                div.style.left = (zone.x * scaleX) + 'px';
+                div.style.top = (zone.y * scaleY) + 'px';
+                div.style.width = (zone.w * scaleX) + 'px';
+                div.style.height = (zone.h * scaleY) + 'px';
+
+                div.onmousedown = (e) => {
+                    div.focus(); // Ensure it gets focus to indicate selection (though global listener handles key)
+                    startDrag(e, i, 'move');
+                };
+
+                // Keyboard Delete handled globally via activeZoneIdx
+
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle';
+                handle.onmousedown = (e) => {
+                    e.stopPropagation();
+                    startDrag(e, i, 'resize');
+                };
+                div.appendChild(handle);
+
+                canvas.appendChild(div);
+            }
+        }
+
+        // --- Interaction Logic ---
+        let isDragging = false, isResizing = false;
+        let activeZoneIdx = -1;
+        let startX, startY;
+        let startLeft, startTop, startW, startH;
+
+        function startDrag(e, idx, mode) {
+            e.preventDefault();
+            isDragging = mode === 'move';
+            isResizing = mode === 'resize';
+            activeZoneIdx = idx;
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const zone = config.playlist[currentIndex].zones[idx];
+            startLeft = zone.x;
+            startTop = zone.y;
+            startW = zone.w;
+            startH = zone.h;
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+
+        function onMouseMove(e) {
+            if (!isDragging && !isResizing) return;
+
+            const gw = config.global_settings.screen_width || 1920;
+            const gh = config.global_settings.screen_height || 1080;
+            const canvas = document.getElementById('preview-canvas');
+
+            const scaleX = gw / canvas.clientWidth;
+            const scaleY = gh / canvas.clientHeight;
+
+            const dx = (e.clientX - startX) * scaleX;
+            const dy = (e.clientY - startY) * scaleY;
+
+            const zone = config.playlist[currentIndex].zones[activeZoneIdx];
+
+            if (isDragging) {
+                let newX = startLeft + dx;
+                let newY = startTop + dy;
+
+                // Snap to Grid (50px magnetic)
+                const snap = 20;
+                if (Math.abs(newX) < snap) newX = 0;
+                if (Math.abs(newY) < snap) newY = 0;
+                if (Math.abs(newX + zone.w - gw) < snap) newX = gw - zone.w;
+                if (Math.abs(newY + zone.h - gh) < snap) newY = gh - zone.h;
+
+                zone.x = Math.round(newX);
+                zone.y = Math.round(newY);
+            } else if (isResizing) {
+                zone.w = Math.max(50, Math.round(startW + dx));
+                zone.h = Math.max(50, Math.round(startH + dy));
+            }
+
+            // Visual Update
+            const div = canvas.querySelector(`.preview-zone[data-idx="${activeZoneIdx}"]`);
+            if (div) {
+                const cvsScaleX = canvas.clientWidth / gw;
+                const cvsScaleY = canvas.clientHeight / gh;
+                div.style.left = (zone.x * cvsScaleX) + 'px';
+                div.style.top = (zone.y * cvsScaleY) + 'px';
+                div.style.width = (zone.w * cvsScaleX) + 'px';
+                div.style.height = (zone.h * cvsScaleY) + 'px';
+
+                // Collision Feedback
+                if (checkCollision(currentIndex, activeZoneIdx)) {
+                    div.classList.add('colliding');
+                } else {
+                    div.classList.remove('colliding');
+                }
+            }
+            updateZoneInputs(activeZoneIdx);
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            isResizing = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            renderZoneEditor(config.playlist[currentIndex]);
+        }
+
+        // --- Deletion Logic ---
+        window.deleteZone = function (index) {
+            if (!confirm("確定刪除此區域嗎？ (Delete Zone?)")) return;
+
+            if (config.playlist[currentIndex] && config.playlist[currentIndex].zones) {
+                config.playlist[currentIndex].zones.splice(index, 1);
+                activeZoneIdx = -1; // Deselect
+                renderZoneEditor(config.playlist[currentIndex]);
+                updateGridPreview(true);
+            }
+        };
+
+        // Hotkey: Global Delete
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' && activeZoneIdx !== -1) {
+                // Ensure we are NOT typing in an input field
+                const tag = document.activeElement.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                    deleteZone(activeZoneIdx);
+                }
+            }
+        });
+
+        function checkCollision(sceneIdx, zoneIdx) {
+            const scene = config.playlist[sceneIdx];
+            const zones = scene.zones;
+            // Respect actual array length
+            const limit = zones.length;
+
+            const me = zones[zoneIdx];
+            if (!me) return false;
+
+            // Basic AABB
+            for (let i = 0; i < limit; i++) {
+                if (i === zoneIdx) continue;
+                const other = zones[i];
+                if (!other || other.x === undefined) continue;
+
+                if (me.x < other.x + other.w &&
+                    me.x + me.w > other.x &&
+                    me.y < other.y + other.h &&
+                    me.y + me.h > other.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function updateZoneInputs(idx) {
+            const row = document.querySelector(`#zone-row-${idx}`);
+            if (row) {
+                const zone = config.playlist[currentIndex].zones[idx];
+                row.querySelector('.inp-x').value = zone.x;
+                row.querySelector('.inp-y').value = zone.y;
+                row.querySelector('.inp-w').value = zone.w;
+                row.querySelector('.inp-h').value = zone.h;
+            }
+
+        }
+
+        // --- Zone Editor ---
+        function renderZoneEditor(scene) {
+            const container = document.getElementById('zones-container');
+            container.innerHTML = '';
+
+            if (!scene.zones) scene.zones = [];
+
+            // Use Actual Zones Length to allow deletion
+            // Do NOT force rows*cols here, otherwise deleted zones reappear at (0,0)
+            const count = scene.zones.length;
+
+            for (let i = 0; i < count; i++) {
+                if (!scene.zones[i]) scene.zones[i] = { id: i, type: 'web', content: '', x: 0, y: 0, w: 100, h: 100 };
+                const zone = scene.zones[i];
+
+                const div = document.createElement('div');
+                div.className = 'zone-editor-item';
+                div.id = `zone-row-${i}`;
+                div.innerHTML = `
+                <div class="zone-header">
+                    <span>區域 ZONE ${i}</span>
+                    <button class="btn-header-delete" onclick="deleteZone(${i})" title="刪除此區域 (Delete)">✕</button>
+                </div>
+                <div class="form-grid">
+                    <span class="form-label">類型 TYPE</span>
+                    <select onchange="updateZone(${i}, 'type', this.value)">
+                        <option value="web" ${zone.type === 'web' ? 'selected' : ''}>網頁 WEB</option>
+                        <option value="exe" ${zone.type === 'exe' ? 'selected' : ''}>程式 EXE</option>
+                        <option value="video" ${zone.type === 'video' ? 'selected' : ''}>影片 VIDEO</option>
+                        <option value="rdp" ${zone.type === 'rdp' ? 'selected' : ''}>遠端 RDP</option>
+                    </select>
+                    
+                    ${zone.type === 'web' ? `
+                    <!-- [Cleaned Up] Native Browser Option Removed (Defaulting to Internal WebView2) -->
+                    ` : ''}
+                    
+                    <span class="form-label">內容 CONTENT</span>
+                    <input type="text" value="${zone.content || ''}" placeholder="網址 / 路徑 (URL/PATH)" 
+                           oninput="updateZone(${i}, 'content', this.value)">
+
+                    <span class="form-label">縮放 ZOOM</span>
+                    <input type="number" step="0.1" value="${zone.scale || 1.0}" placeholder="1.0"
+                           onchange="updateZone(${i}, 'scale', parseFloat(this.value))">
+
+                    ${zone.type === 'web' ? `
+                    <span class="form-label">網頁更新 CACHE</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label class="toggle-switch" title="每次進入場景時重新取得最新頁面；適合部署後仍顯示舊版的內部網站。">
+                            <input type="checkbox" ${zone.cache_bust ? 'checked' : ''}
+                                onchange="updateZone(${i}, 'cache_bust', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="color: var(--text-dim); font-size: 0.85rem;">強制更新</span>
+                    </div>
+                    ` : ''}
+
+                    <span class="form-label">WebView</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label class="toggle-switch" title="特殊網頁用：切換離開時關閉此 WebView，回來時重新啟動。">
+                            <input type="checkbox" ${zone.isolate_webview ? 'checked' : ''}
+                                onchange="updateZone(${i}, 'isolate_webview', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="color: var(--text-dim); font-size: 0.85rem;">獨立程序</span>
+                    </div>
+                           
+                    <span class="form-label">座標 POS</span>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" class="inp-x" value="${zone.x || 0}" 
+                            onchange="updateZone(${i}, 'x', parseInt(this.value)); updateGridPreview(false);">
+                        <input type="number" class="inp-y" value="${zone.y || 0}" 
+                            onchange="updateZone(${i}, 'y', parseInt(this.value)); updateGridPreview(false);">
+                    </div>
+                    
+                    <span class="form-label">尺寸 SIZE</span>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" class="inp-w" value="${zone.w || 100}" 
+                            onchange="updateZone(${i}, 'w', parseInt(this.value)); updateGridPreview(false);">
+                        <input type="number" class="inp-h" value="${zone.h || 100}" 
+                            onchange="updateZone(${i}, 'h', parseInt(this.value)); updateGridPreview(false);">
+                    </div>
+                </div>
+            `;
+                container.appendChild(div);
+            }
+        }
+
+        window.updateZone = function (index, field, value) {
+            if (config.playlist[currentIndex] && config.playlist[currentIndex].zones[index]) {
+                config.playlist[currentIndex].zones[index][field] = value;
+            }
+        };
+
+        function autoArrange() {
+            if (!config.playlist[currentIndex]) return;
+            const scene = config.playlist[currentIndex];
+            const rows = parseInt(document.getElementById('edit-rows').value) || 1;
+            const cols = parseInt(document.getElementById('edit-cols').value) || 1;
+
+            scene.rows = rows;
+            scene.cols = cols;
+
+            const gw = config.global_settings.screen_width || 1920;
+            const gh = config.global_settings.screen_height || 1080;
+            const gridW = Math.floor(gw / cols);
+            const gridH = Math.floor(gh / rows);
+
+            const count = rows * cols;
+
+            // Ensure array size
+            for (let i = 0; i < count; i++) {
+                if (!scene.zones[i]) scene.zones[i] = { id: i, type: 'web', content: '' };
+
+                const r = Math.floor(i / cols);
+                const c = i % cols;
+
+                scene.zones[i].x = c * gridW;
+                scene.zones[i].y = r * gridH;
+                scene.zones[i].w = gridW;
+                scene.zones[i].h = gridH;
+            }
+
+            updateGridPreview(true); // Redraw
+            renderZoneEditor(scene);
+        }
+
+        function syncZone0Size() {
+            if (!config.playlist[currentIndex]) return;
+            const scene = config.playlist[currentIndex];
+            if (!scene.zones || scene.zones.length === 0) return;
+
+            const z0 = scene.zones[0];
+            const w = z0.w;
+            const h = z0.h;
+
+            for (let i = 1; i < scene.zones.length; i++) {
+                scene.zones[i].w = w;
+                scene.zones[i].h = h;
+            }
+            updateGridPreview(true);
+            renderZoneEditor(scene);
+        }
+
+        function addScene() {
+            config.playlist.push({
+                name: "New Scene", duration: 10, rows: 2, cols: 2, zones: []
+            });
+            currentIndex = config.playlist.length - 1;
+            renderPlaylist();
+            loadSceneDetails(currentIndex);
+        }
+
+        function deleteScene() {
+            if (confirm("確定刪除此場景?")) {
+                config.playlist.splice(currentIndex, 1);
+                currentIndex = 0;
+                renderPlaylist();
+                loadSceneDetails(0);
+            }
+        }
+
+        // --- Status & Control ---
+        async function sendCmd(cmd) {
+            const res = await fetch(apiUrl('/api/cmd'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cmd: cmd, profile: currentProfile })
+            });
+            if (!res.ok) throw new Error(`Player command failed: HTTP ${res.status}`);
+            await fetchStatus();
+            if (cmd === 'EXIT') setTimeout(fetchStatus, 3500);
+        }
+
+        async function sendCmdAll(cmd) {
+            const res = await fetch('/api/cmd?scope=all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cmd: cmd, scope: 'all' })
+            });
+            if (!res.ok) throw new Error(`Player command failed: HTTP ${res.status}`);
+            await fetchStatus();
+            if (cmd === 'EXIT') setTimeout(fetchStatus, 3500);
+        }
+
+        async function togglePlay() {
+            if (playerStatus.offline) {
+                await fetch(apiUrl('/api/run_player'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profile: currentProfile })
+                });
+            } else {
+                if (playerStatus.paused) await sendCmd('RESUME');
+                else await sendCmd('PAUSE');
+            }
+        }
+
+        async function fetchStatus() {
+            if (statusPollInFlight) return;
+            statusPollInFlight = true;
+            const requestedProfile = currentProfile;
+            try {
+                const res = await fetch(`/api/status?profile=${encodeURIComponent(requestedProfile)}`, { cache: 'no-store' });
+                const status = await res.json();
+                if (requestedProfile !== currentProfile) return;
+                playerStatus = status;
+
+                const btn = document.getElementById('btn-toggle');
+                if (status.offline) {
+                    btn.innerHTML = "▶"; // Play
+                } else {
+                    btn.innerHTML = status.paused ? "▶" : "⏸"; // Play : Pause
+                }
+
+                // Clean old status
+                document.querySelectorAll('.status-wrapper').forEach(el => el.innerHTML = '');
+                document.querySelectorAll('.playlist-item').forEach(el => el.classList.remove('active'));
+
+                if (!status.offline) {
+                    const li = document.getElementById('playlist').children[status.scene_idx];
+                    if (li) {
+                        li.classList.add('active');
+                        const wrapper = li.querySelector('.status-wrapper');
+                        const cssClass = status.paused ? 'circle-paused' : 'circle-active';
+                        const timerText = Number(status.total) === 0 ? '固定' : `${Math.ceil(status.remaining || 0)}s`;
+                        wrapper.innerHTML = `
+                        <span class="timer-val">${timerText}</span>
+                        <div class="circle-indicator ${cssClass}"></div>
+                    `;
+                    }
+                }
+            } catch (e) {
+                console.warn('Status poll failed:', e);
+            } finally {
+                statusPollInFlight = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

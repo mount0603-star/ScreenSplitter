@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Splitter Player Architecture (V4)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        code {
+            background: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+            color: #c7254e;
+        }
+
+        pre {
+            background: #2d3436;
+            color: #dfe6e9;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-left: 5px solid #ffeeba;
+            margin: 10px 0;
+        }
+
+        .good {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-left: 5px solid #c3e6cb;
+            margin: 10px 0;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8f9fb;
+        }
+
+        .muted {
+            color: #6c757d;
+        }
+    </style>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</head>
+
+<body>
+
+    <h1>Screen Splitter Player (V4) - 系統架構說明</h1>
+
+    <div class="card">
+        <h2>系統概觀 (System Overview)</h2>
+        <p>本系統基於 <strong>Python 3.10+</strong> 與 <strong>PySide6 (Qt)</strong> 開發，核心功能為多視窗分割管理與外部程式嵌入。
+            不同於傳統的 Qt 應用，Player V4 大量使用了 <strong>Windows API (Win32GUI/Win32Process)</strong> 來強制管理外部視窗 (VLC, Chrome,
+            WebView2, Unity Games 等)，
+            使其看起來像是單一整合的應用程式。</p>
+        <ul>
+            <li><strong>核心語言:</strong> Python 3.10+</li>
+            <li><strong>GUI 框架:</strong> PySide6 (Qt 6.x)</li>
+            <li><strong>視窗管理:</strong> Win32 API (pywin32) + psutil</li>
+            <li><strong>渲染引擎:</strong> QtWebEngine (內建) / Edge WebView2 (外部 Host) / VLC (外部)</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>核心流程與生命週期 (Core Lifecycle)</h2>
+        <div class="mermaid">
+            graph TD
+            Start[程式啟動 Main] --> Init[初始化 Config & Mutex]
+            Init --> SetupUI[建立 PlayerWindow & 全螢幕]
+
+            subgraph "Scene Loading (場景載入)"
+            LoadScene[load_scene] --> ParseConfig[解析 Grid/Zones]
+            ParseConfig --> CreatePlaceholders[建立佔位 Frame]
+            CreatePlaceholders --> LaunchHelpers[啟動外部 helpers (WebView/VLC)]
+            end
+
+            SetupUI --> LoadScene
+            LoadScene --> StartLoop[啟動 Enforce Loop (500ms)]
+
+            subgraph "Enforce Loop (核心心跳)"
+            Check[檢查視窗狀態] --> TrackPID[PID 追蹤 & 修正]
+            TrackPID --> FindHwnd[find_main_window_for_exe]
+            FindHwnd --> Strip[strip_borders (去邊框)]
+            Strip --> Resize[SetWindowPos (強制定位)]
+            Resize --> ZOrder[Z-Order 修正 (TopMost)]
+            end
+
+            StartLoop --> Check
+            Check -.->|每 500ms| Check
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>WebView2 Host Mode 架構</h2>
+        <p>為了解決多個 WebView 實例導致的記憶體暴增問題，V4 引入了 <strong>Host Mode</strong>。
+            所有 WebView 視窗由單一外部進程 (<code>WebViewPlayer.exe --host</code>) 統一管理，透過 JSON 檔案進行通訊。</p>
+
+        <div class="mermaid">
+            sequenceDiagram
+            participant Player as Player.py (Main)
+            participant Host as WebViewPlayer.exe (Host)
+            participant File as webview_cmd.json
+            participant Status as webview_status.json
+
+            Player->>Player: load_scene 分析 Zone
+            Player->>Player: 發現多個 Web Zone
+
+            opt Host 未啟動
+            Player->>Host: 啟動 Host Process (--host)
+            end
+
+            loop Enforce Loop (500ms)
+            Player->>File: 寫入指令 (Upsert: URL, Rect, Tag)
+            Host->>File: 讀取指令 & 執行
+            Host->>Host: 建立/更新 WebView 視窗
+            Host->>Status:回報視窗 Handle (HWND)
+            Player->>Status: 讀取 HWND
+            Player->>Player: 綁定 HWND 進行 Z-Order 管理
+            end
+        </div>
+        <div class="good">
+            <strong>優勢:</strong> 節省 50-70% 記憶體，避免瀏覽器進程風暴。<br>
+            <strong>容錯:</strong> 若 Host 當機，Player 會自動重啟 Host 或降級為獨立視窗模式。
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>關鍵視窗查找邏輯 (Window Finding Logic)</h2>
+        <p>這是系統最複雜的部分，位於 <code>find_main_window_for_exe</code>。為了確保抓到正確的視窗，系統使用了多層過濾機制。</p>
+
+        <div class="mermaid">
+            flowchart LR
+            Start(目標 EXE 路徑) --> Step1{有 PID?}
+            Step1 -->|Yes| CheckChildren[搜尋 PID 及子進程]
+            Step1 -->|No| Enum[列舉所有視窗]
+
+            CheckChildren --> Filter[過濾條件]
+            Enum --> Filter
+
+            subgraph "智慧過濾器 (Filter)"
+            F1[排除 0x0 視窗]
+            F2[排除自身 Player]
+            F3[排除 CabinetWClass (檔案總管)]
+            F4{嚴格模式?}
+
+            F1 --> F4
+            F2 --> F4
+            F3 --> F4
+
+            F4 -->|Yes| CheckTitle[檢查標題/Cmdline]
+            F4 -->|No| Score[計分系統]
+            end
+
+            CheckTitle -->|Match| Found
+            Score -->|最高分| Found[返回 HWND]
+        </div>
+        <pre>
+# 計分標準 (Scoring):
++50 視窗可見 (Visible)
++25 PID 匹配 (PID Match)
++20 標題非空 (Has Title)
++15 尺寸合理 (>100px)
++10 有標題列 (Caption)
+        </pre>
+    </div>
+
+    <div class="card">
+        <h2>故障排除與自我修復 (Self-Healing)</h2>
+        <ul>
+            <li><strong>Re-entry Guard:</strong> <code>enforce_loop</code> 具備重入保護，防止上一次迴圈未結束就開始下一次，造成 CPU 100%。</li>
+            <li><strong>僵屍進程清理:</strong> <code>cleanup_rogue_processes</code> 會定期掃描並強制關閉不屬於當前場景的外部 Helper 進程。</li>
+            <li><strong>樣式剝離冷卻:</strong> <code>strip_borders</code> 每秒最多執行一次，防止與 Chrome/VLC 的原生樣式邏輯衝突（閃爍問題）。</li>
+            <li><strong>VLC 復原:</strong> 若 VLC 崩潰，Player 會檢測到 PID 消失並重新啟動它。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>建議補強 1：Process Boundary 與責任邊界</h2>
+        <p>目前文件已描述主要流程，但還缺「誰負責什麼」的清楚邊界圖。建議補上以下圖，避免維運時把 Player/Host 的職責混在一起。</p>
+        <div class="mermaid">
+            flowchart LR
+            WA[WebAdmin / admin.py] -->|NEXT JUMP PAUSE| IPCA[ipc_cmd.txt]
+            IPCA --> P[Player.exe]
+            P -->|status write| IPCB[ipc_status.json]
+
+            P -->|upsert/close commands| WVC[webview_cmd.json]
+            WVH[WebViewPlayer.exe --host] -->|window status| WVS[webview_status.json]
+            WVC --> WVH
+            WVS --> P
+
+            P -->|launch/manage| VLC[VLC.exe]
+            P -->|launch/manage| APP[External EXE Apps]
+            P -->|find/move/hide| WIN32[Win32 API + psutil]
+            WIN32 --> VLC
+            WIN32 --> APP
+            WIN32 --> WVH
+        </div>
+        <ul>
+            <li><strong>Player:</strong> 排程、分區計算、視窗管控、故障恢復決策。</li>
+            <li><strong>WebView Host:</strong> 多視窗建立/更新/隱藏（不負責排程）。</li>
+            <li><strong>WebAdmin:</strong> 只送控制命令，不直接操作 HWND。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>建議補強 2：IPC 檔案契約（Schema）</h2>
+        <p>建議把 IPC 檔案視為正式介面，文件化欄位、寫入端、讀取端與時序，減少跨程式改動風險。</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Writer</th>
+                        <th>Reader</th>
+                        <th>Payload</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ipc_cmd.txt</code></td>
+                        <td>WebAdmin</td>
+                        <td>Player</td>
+                        <td><code>NEXT</code> / <code>PREV</code> / <code>JUMP n</code> / <code>PAUSE</code> / <code>RESUME</code> / <code>EXIT</code></td>
+                        <td>單一命令，Player 讀完即刪。</td>
+                    </tr>
+                    <tr>
+                        <td><code>ipc_status.json</code></td>
+                        <td>Player</td>
+                        <td>WebAdmin</td>
+                        <td><code>scene_idx</code>, <code>paused</code>, <code>remaining</code>, <code>total</code>, <code>timestamp</code></td>
+                        <td>供 UI 狀態顯示。</td>
+                    </tr>
+                    <tr>
+                        <td><code>webview_cmd.json</code></td>
+                        <td>Player</td>
+                        <td>WebView Host</td>
+                        <td>Array of <code>{op,tag,url,x,y,w,h,show}</code></td>
+                        <td><code>op=upsert/hide/close/exit</code>。</td>
+                    </tr>
+                    <tr>
+                        <td><code>webview_status.json</code></td>
+                        <td>WebView Host</td>
+                        <td>Player</td>
+                        <td><code>{pid, windows[], ts}</code></td>
+                        <td>供 Player 做健康檢查與恢復判斷。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>建議補強 3：DPI 與座標轉換鏈</h2>
+        <p>這個專案最容易閃爍的點是 Logical/Physical 混用。建議把座標鏈固定畫出來，並附上容差策略。</p>
+        <div class="mermaid">
+            flowchart TD
+            Z[Zone _rect from config] --> L[Logical rect: rx ry rw rh]
+            L --> S[get_vlc_scale: sx sy]
+            S --> P2[Physical rect: prx pry prw prh]
+            P2 --> C[GetWindowRect current: cx cy cw ch]
+            C --> D{abs diff > tolerance?}
+            D -->|No| SKIP[Skip resize]
+            D -->|Yes| MOVE[SetWindowPos]
+            MOVE --> CHECK[Next enforce loop]
+        </div>
+        <ul>
+            <li><strong>文件要寫清楚：</strong> 所有 Win32 比對以 Physical pixel 為準。</li>
+            <li><strong>文件要寫清楚：</strong> 位置容差與尺寸容差分開，避免無限 resize。</li>
+            <li><strong>文件要寫清楚：</strong> WebView Host 必須採用 Per-Monitor DPI aware。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>建議補強 4：Scene 切換狀態機</h2>
+        <p>目前文件有流程圖，但缺少場景切換時 Upsert / Hide / Close 的狀態關係。補這張圖後，除錯會快很多。</p>
+        <div class="mermaid">
+            stateDiagram-v2
+            [*] --> LoadScene
+            LoadScene --> ComputeZones
+            ComputeZones --> UpsertActive
+            UpsertActive --> EnforceLoop
+
+            EnforceLoop --> Stable: HWND found + geometry within tolerance
+            EnforceLoop --> Recover: missing/misaligned
+            Recover --> EnforceLoop
+
+            EnforceLoop --> SceneSwitch: NEXT/JUMP/PREV
+            SceneSwitch --> HideInactive
+            HideInactive --> CloseStaleTags
+            CloseStaleTags --> LoadScene
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>建議補強 5：故障決策樹 + 觀測點</h2>
+        <div class="mermaid">
+            flowchart TD
+            A[Window issue detected] --> B{HWND found?}
+            B -->|No| C{Tag process alive?}
+            C -->|Yes| D[Wait missing timeout]
+            C -->|No| E[Launch or restart helper]
+            D --> F{Recovered?}
+            F -->|Yes| G[Back to enforce]
+            F -->|No| H[Kill stale process + relaunch]
+            B -->|Yes| I{Within tolerance?}
+            I -->|Yes| G
+            I -->|No| J[SetWindowPos + optional strip_borders]
+            J --> G
+        </div>
+        <p class="muted">建議再補一張「實際 log 範例截圖」，至少包含 <code>Target position</code>、<code>Current position</code>、<code>Position/size differs</code>、<code>Host mode active</code>、<code>Hiding Inactive</code>。</p>
+    </div>
+
+</body>
+
+</html>

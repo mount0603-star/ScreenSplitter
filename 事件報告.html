@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>輪播程式異常事件報告 (2026-02-05)</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-left: 5px solid #3498db;
+            padding-left: 10px;
+        }
+
+        h3 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+
+        .error-block {
+            background-color: #ffebee;
+            border: 1px solid #ef9a9a;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #2e86de;
+        }
+
+        .solution-block {
+            background-color: #e8f8f5;
+            border: 1px solid #a3e4d7;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .tag-fail {
+            background: #ffcccc;
+            color: #990000;
+        }
+
+        .tag-success {
+            background: #ccffcc;
+            color: #006600;
+        }
+
+        .tag-warn {
+            background: #fff4cc;
+            color: #996600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>輪播程式異常事件報告</h1>
+        <p><strong>日期：</strong> 2026年02月05日</p>
+        <p><strong>事件類型：</strong> 系統崩潰 (Crash) / 網頁渲染錯誤 / 無法正常關閉</p>
+
+        <h2>1. 問題描述</h2>
+        <p>程式執行過程中，雖然主視窗 (Player) 保持開啟，但內容網頁載入緩慢、卡頓，或出現白畫面。嘗試關閉程式時，會觸發 Watchdog 機制導致程式無限重啟，無法透過 UI 正常退出。</p>
+
+        <h3>關鍵錯誤代碼 (Event Viewer)</h3>
+        <div class="error-block">
+            Faulting application name: QtWebEngineProcess.exe
+            Faulting module name: KERNELBASE.dll
+            Exception code: 0xe0000008 (Kernel Exception)
+            Exception code: 0xc0000005 (Access Violation)
+        </div>
+        <p><strong>分析：</strong></p>
+        <ul>
+            <li><strong>0xc0000005</strong>：記憶體存取違規。在 QtWebEngine 中通常指向 GPU 驅動程式與 Chromium 渲染引擎的記憶體衝突。</li>
+            <li><strong>0xe0000008</strong>：無效的 Handle 或 Kernel 異常。在 Windows 環境下，這經常是因為 <strong>Renderer Code
+                    Integrity</strong> (Windows 安全機制) 認為渲染程序不安全（可能因防毒軟體掛勾 DLL）而強制終止它，導致網頁反覆崩潰與重啟（卡頓的主因）。</li>
+        </ul>
+
+        <h2>2. 除錯與版本迭代歷程</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>版本策略</th>
+                    <th>設定內容</th>
+                    <th>測試結果</th>
+                    <th>結論</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>初期版本 (Balanced)</strong></td>
+                    <td>啟用 GPU 加速<br>禁用 Shader Cache</td>
+                    <td><span class="tag-fail">失敗</span><br>出現 0xe0000008<br>初始載入極慢 (反覆崩潰)</td>
+                    <td>GPU 驅動或安全機制衝突，導致渲染程序不斷重啟。</td>
+                </tr>
+                <tr>
+                    <td><strong>混合模式 (Hybrid)</strong></td>
+                    <td>啟用 GPU 加速<br>禁用 Code Integrity 檢查</td>
+                    <td><span class="tag-fail">失敗</span><br>0xe0000008 依然出現</td>
+                    <td>證明即便是關閉安全檢查，該機器的 GPU 環境在 Chromium 運作下仍不穩定，必須完全捨棄 GPU。</td>
+                </tr>
+                <tr>
+                    <td><strong>終極安全模式 (CPU Only)</strong></td>
+                    <td><strong>禁用 GPU</strong><br>禁用 OpenGL<br>禁用 Code Integrity</td>
+                    <td><span class="tag-success">目前採用</span><br>穩定性最高</td>
+                    <td>雖然犧牲了 GPU 渲染效能（頁面載入可能稍慢），但根治了程序崩潰問題，確保能長時間掛機不白屏。</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>3. 最終解決方案 (Code Changes)</h2>
+
+        <h3>A. 啟動參數調整 (player.py)</h3>
+        <p>採用「終極安全模式」，強制使用 CPU 渲染並關閉所有可能導致崩潰的實驗性功能。</p>
+        <div class="code-block">
+            # ULTIMATE SAFE MODE
+            os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (
+            "--disable-gpu " # 禁用顯示卡加速 (根治 0xc0000005)
+            "--disable-opengl " # 禁用 OpenGL
+            "--disable-gpu-compositing " # 禁用 GPU 合成
+            "--no-sandbox " # 降低權限隔離導致的錯誤
+            "--disable-features=RendererCodeIntegrity,FlashDeprecationWarning " #根治 0xe0000008
+            "--disable-site-isolation-trials " # 減少記憶體隔離崩潰
+            "--process-per-site " # 記憶體優化 (共用程序)
+            "--check-for-update-interval=31536000"
+            )
+        </div>
+
+        <h3>B. 修正「無法關閉」的 Bug</h3>
+        <p>原本程式由 <code>run_player.bat</code> (Watchdog) 監控，程式關閉後會被自動重啟。修復後，在使用者點擊「結束播放」時，會主動尋找並殺掉父程序 (cmd.exe)。</p>
+        <div class="code-block">
+            def force_quit(self):
+            """
+            User manually requested exit.
+            We must KILL the parent watchdog (cmd.exe) to prevent it from restarting us.
+            """
+            parent = psutil.Process(os.getpid()).parent()
+            if parent and ("cmd" in parent.name() or "powershell" in parent.name()):
+            parent.kill() # 殺掉監控腳本
+            QApplication.instance().quit()
+        </div>
+
+        <h2>4. 後續觀察建議</h2>
+        <ul>
+            <li><strong>效能監控：</strong> 由於改用 CPU 渲染，請觀察長時間播放 3D 或複雜網頁時 CPU 使用率是否過高（雖然比崩潰好）。</li>
+            <li><strong>記憶體洩漏：</strong> 已加入 <code>--process-per-site</code> 優化，但若長期掛機 (24h+) 仍有變慢跡象，需檢查 Windows 工作管理員的
+                RAM 使用量。</li>
+        </ul>
+
+    </div>
+
+</body>
+
+</html>

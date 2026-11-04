@@ -1,0 +1,6 @@
+PySide6
+Flask
+pywin32
+psutil
+pyinstaller
+pywebview

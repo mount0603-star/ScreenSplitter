@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>ScreenSplitter 4.3.8 使用說明與交接指南</title>
+  <style>
+    :root { --ink:#172c3b; --muted:#526572; --brand:#006b70; --line:#d4e0e4; --paper:#fff; --soft:#eef5f6; }
+    * { box-sizing:border-box; }
+    html { scroll-padding-top:1rem; }
+    body { margin:0; background:#f4f7f8; color:var(--ink); font:16px/1.8 system-ui,-apple-system,"Segoe UI","Microsoft JhengHei",sans-serif; overflow-wrap:anywhere; }
+    a { color:#005d78; text-underline-offset:.2em; }
+    a:hover { color:#003b4c; }
+    a:focus-visible, [tabindex]:focus-visible { outline:3px solid #dc8f12; outline-offset:4px; }
+    .skip { position:absolute; left:1rem; top:-8rem; padding:.6rem 1rem; background:white; z-index:2; }
+    .skip:focus { top:1rem; }
+    header { background:#123b47; color:white; padding:3.2rem max(1.25rem,calc((100vw - 1240px)/2)); }
+    header p { color:#d9e9ee; max-width:58rem; }
+    .eyebrow { margin:0 0 .7rem; font-weight:700; letter-spacing:.12em; font-size:.82rem; }
+    h1 { margin:0; font-size:clamp(1.8rem,4vw,2.8rem); line-height:1.35; }
+    .meta { display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; margin-top:1.2rem; font-size:.92rem; }
+    .layout { max-width:1280px; margin:auto; display:grid; grid-template-columns:245px minmax(0,1fr); gap:2rem; padding:2rem 1.25rem 4rem; }
+    nav { align-self:start; padding:1.1rem; background:var(--paper); border:1px solid var(--line); border-radius:.6rem; }
+    nav h2 { margin:0 0 .6rem; font-size:1.1rem; }
+    nav ol { margin:0; padding-left:1.4rem; }
+    nav li { padding:.25rem 0; font-size:.94rem; }
+    nav p { color:var(--muted); font-size:.85rem; }
+    main { min-width:0; }
+    section { background:var(--paper); padding:1.7rem; margin:0 0 1.5rem; border:1px solid var(--line); border-radius:.6rem; }
+    h2 { margin:0 0 1rem; color:#124c58; font-size:1.5rem; line-height:1.45; }
+    h3 { margin:1.6rem 0 .55rem; font-size:1.15rem; line-height:1.5; }
+    h4 { font-size:1rem; margin:1.25rem 0 .4rem; }
+    p { margin:.65rem 0; }
+    ul,ol { padding-left:1.5rem; }
+    li { margin:.35rem 0; }
+    li > ul,li > ol { margin:.35rem 0; }
+    .note,.important { padding:.9rem 1.1rem; margin:1rem 0; border-left:4px solid #138486; background:var(--soft); }
+    .important { border-color:#b77714; background:#fff7e8; }
+    .note p:first-child,.important p:first-child { margin-top:0; }
+    .note p:last-child,.important p:last-child { margin-bottom:0; }
+    .table-wrap { overflow-x:auto; margin:1rem 0; }
+    table { border-collapse:collapse; width:100%; font-size:.94rem; }
+    th,td { border:1px solid var(--line); padding:.6rem .75rem; vertical-align:top; text-align:left; }
+    th { background:#edf4f5; font-weight:700; }
+    caption { text-align:left; color:var(--muted); margin-bottom:.4rem; font-size:.9rem; }
+    code,kbd,pre { font-family:Consolas,"Cascadia Code",monospace; }
+    code { font-size:.92em; background:#edf2f4; padding:.08rem .25rem; border-radius:.2rem; overflow-wrap:anywhere; }
+    pre { background:#152d39; color:#edf7fa; padding:1rem; border-radius:.35rem; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.86rem; line-height:1.7; }
+    pre code { padding:0; background:transparent; color:inherit; }
+    kbd { background:#fff; border:1px solid #becdd4; border-bottom-width:2px; border-radius:.25rem; padding:.05rem .35rem; font-size:.85em; }
+    .small { color:var(--muted); font-size:.9rem; }
+    .top { display:block; text-align:right; font-size:.85rem; margin-top:1rem; }
+    .checklist { list-style:none; padding:0; }
+    .checklist li { padding-left:1.5rem; position:relative; margin:.7rem 0; }
+    .checklist li::before { content:"□"; position:absolute; left:0; }
+    footer { max-width:1280px; margin:auto; padding:0 1.25rem 2rem; color:var(--muted); font-size:.88rem; }
+    @media (max-width:850px) {
+      .layout { display:block; padding-top:1rem; }
+      nav { margin-bottom:1.25rem; }
+      nav ol { columns:2; column-gap:2rem; }
+      nav li { break-inside:avoid; }
+      section { padding:1.15rem; }
+    }
+    @media (max-width:480px) {
+      body { font-size:15px; }
+      nav ol { columns:1; }
+      th,td { padding:.5rem; }
+      .layout { padding-left:.65rem; padding-right:.65rem; }
+    }
+    @media print {
+      @page { size:A4; margin:17mm 14mm; }
+      body { background:white; color:black; font-size:10pt; line-height:1.6; }
+      header { background:white; color:black; padding:0 0 6mm; border-bottom:2px solid #333; }
+      header p { color:#333; }
+      h1 { font-size:23pt; }
+      .layout { display:block; padding:5mm 0 0; max-width:none; }
+      nav { border:0; padding:0 0 4mm; }
+      nav ol { columns:2; }
+      nav p,.skip,.top { display:none; }
+      section { padding:0; margin:7mm 0; border:0; border-radius:0; }
+      h2 { border-bottom:1px solid #999; padding-bottom:2mm; font-size:15pt; }
+      h2,h3,h4 { break-after:avoid; }
+      p,li { orphans:3; widows:3; }
+      tr,.note,.important { break-inside:avoid; }
+      .table-wrap { overflow:visible; }
+      thead { display:table-header-group; }
+      table { font-size:9pt; }
+      pre { background:#f2f2f2; color:black; border:1px solid #ccc; font-size:8.5pt; }
+      a { color:black; text-decoration:none; }
+      footer { padding:0; font-size:8pt; }
+    }
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">跳至正文</a>
+<header id="top">
+  <p class="eyebrow">SCREEN SPLITTER · OPERATIONS &amp; HANDOVER</p>
+  <h1>使用說明與交接指南</h1>
+  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.3.8 的 Windows 安裝版及對應原始碼。</p>
+  <div class="meta"><span>文件版本：4.3.8</span><span>修訂日期：2026-11-02</span><span>可離線閱讀／列印</span></div>
+</header>
+<div class="layout">
+<nav aria-label="使用說明目錄">
+  <h2>目錄</h2>
+  <ol>
+    <li><a href="#start">第一次使用與日常啟停</a></li>
+    <li><a href="#concepts">系統用途與模組</a></li>
+    <li><a href="#profiles">Profile 與儲存生效</a></li>
+    <li><a href="#scenes">場景、排序與播放控制</a></li>
+    <li><a href="#zones">分區與版面編輯</a></li>
+    <li><a href="#content">網頁、影片、EXE、RDP</a></li>
+    <li><a href="#webview">WebView、更新與登入狀態</a></li>
+    <li><a href="#screens">螢幕指定、DPI 與喚醒</a></li>
+    <li><a href="#settings">鬧鐘、重啟與自動啟動</a></li>
+    <li><a href="#desktop">桌面 Admin 使用與限制</a></li>
+    <li><a href="#data">實際資料位置與檔案</a></li>
+    <li><a href="#upgrade">安裝、升級與卸載</a></li>
+    <li><a href="#backup">備份、還原與搬機</a></li>
+    <li><a href="#troubleshooting">故障排除</a></li>
+    <li><a href="#diagnostics">LOG 與唯讀 API</a></li>
+    <li><a href="#technical">程式與 IPC 技術交接</a></li>
+    <li><a href="#build">測試與安裝包製作</a></li>
+    <li><a href="#handover">交接與驗收清單</a></li>
+  </ol>
+  <p>可用瀏覽器 <kbd>Ctrl</kbd> + <kbd>F</kbd> 搜尋；<kbd>Ctrl</kbd> + <kbd>P</kbd> 列印或存成 PDF。本文件不自動連線、不輪詢狀態。</p>
+</nav>
+<main id="main">
+<section id="start" aria-labelledby="start-title">
+  <h2 id="start-title">1. 第一次使用與日常啟停</h2>
+  <p>一般操作以 <strong>WebAdmin</strong> 為主。先啟動 WebServer，再在瀏覽器選擇要控制的 Profile；每個 Profile 對應一組播放清單及一個 Player。</p>
+  <ol>
+    <li>在播放電腦登入原本的 Windows 使用者，確認電視與副螢幕已連接、Windows 能辨識它們。</li>
+    <li>開啟桌面捷徑 <strong>ScreenSplitter WebServer</strong>，或執行安裝根目錄的 <code>run_webserver.bat</code>。</li>
+    <li>在播放電腦開啟 <code>http://127.0.0.1:5000/</code>；從同一內網的管理電腦操作，改用 <code>http://播放電腦IP:5000/</code>。這裡的 <code>127.0.0.1</code> 永遠指目前開瀏覽器的電腦。</li>
+    <li>選擇 <code>default</code>，設定螢幕與播放清單，按「儲存」。首次空白設定可依第 4、5 節建立一個場景與分區。</li>
+    <li>按播放控制器 <strong>▶</strong>。離線時會要求啟動所選 Profile 的 Player；執行中則依目前狀態切換播放／暫停。</li>
+    <li>若有第二台螢幕，再選擇 <code>screen2</code>，確認其內容與目標螢幕，另按一次 ▶。最後實際查看兩台螢幕。</li>
+  </ol>
+  <div class="note"><p><strong>Web 開得起來，不代表 Player 已啟動。</strong>兩者是不同程序；網頁編輯器與看板網站也不是同一個服務。</p></div>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="日常啟停方式">
+    <table><thead><tr><th scope="col">要做的事</th><th scope="col">操作與作用</th></tr></thead><tbody>
+      <tr><td>啟動目前畫面</td><td>WebAdmin 選 Profile → ▶。也可在播放電腦執行 <code>Player\Player.exe --profile default</code>，副畫面改成 <code>--profile screen2</code>。</td></tr>
+      <tr><td>關閉一個 Player</td><td>WebAdmin 選正確 Profile →「關閉」。會先要求正常退出，再清理該 Profile 遺留的執行程序；等幾秒確認完成。</td></tr>
+      <tr><td>關閉所有 Player</td><td>「全部關閉」作用於 WebServer 列出的全部 Profile，不會關掉 WebServer。</td></tr>
+      <tr><td>停止 WebServer</td><td>使用安裝根目錄 <code>kill_webserver.bat</code>；其作用是結束本機同名 WebServer 程序樹，並非逐 Profile 控制。停止後無法使用 WebAdmin/API；必要時先關閉 Players。</td></tr>
+      <tr><td>關閉管理介面</td><td>關閉瀏覽器分頁或桌面 Admin 視窗不等於關閉 Player；播放會繼續。</td></tr>
+      <tr><td>開啟本說明</td><td>WebAdmin 頁首「使用說明」會另開分頁；桌面 Admin 的「使用說明」或 <kbd>F1</kbd> 直接開本機文件。也可使用開始選單「ScreenSplitter → 使用說明」，或雙擊 <code>docs\usage.html</code>。</td></tr>
+    </tbody></table>
+  </div>
+  <p>安裝包的 <code>run_player.bat</code> 不帶參數時，先等待約 20 秒讓顯示器拓撲穩定，再啟動 default 與<strong>安裝根目錄</strong>下有設定檔的其他 Profile；帶 Profile 參數時只啟動指定項目。每個包裝程序只在 Player 非正常退出時等待約 5 秒重試；正常「關閉」不會被它立即拉回。</p>
+  <p class="small">若實際資料放在 %APPDATA%，上述 BAT 不會自動枚舉那裡的其他 Profile。請用 WebAdmin 逐一啟動，或執行 <code>run_player.bat screen2</code>。WebServer 的自啟選項與此 BAT 是兩套不同的啟動入口。</p>
+  <a class="top" href="#top">回到目錄 ↑</a>
+</section>
+
+<section id="concepts" aria-labelledby="concepts-title">
+  <h2 id="concepts-title">2. 系統用途與模組</h2>
+  <p>ScreenSplitter 將一台 Windows 電腦上的螢幕劃分為多個區域，播放網頁、本機影片、外部程式或 RDP 視窗，並依場景順序輪播。它負責排版、視窗與場景切換；外部網站的資料、登入、地圖服務及業務邏輯仍由各網站負責。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="模組責任">
+    <table><thead><tr><th scope="col">模組／名詞</th><th scope="col">負責內容</th></tr></thead><tbody>
+      <tr><td>WebServer / WebAdmin</td><td>提供 TCP 5000 的網頁編輯器、設定儲存、Player 控制與診斷 API。畫面上「全域系統配置」是目前 Profile 的設定，不是一次更改所有螢幕。</td></tr>
+      <tr><td>Player</td><td>讀取單一 Profile 設定、配置分區、輪播、處理 IPC、螢幕恢復與排程重啟。控制 Profile 另負責鬧鐘與浮動控制入口。</td></tr>
+      <tr><td>WebViewPlayer</td><td>以 Microsoft Edge WebView2 顯示網頁與預設 HTML5 影片。一般以每 Profile 的共用 host 管理多個視窗；特定分區可選獨立程序。</td></tr>
+      <tr><td>AdminTool</td><td>本機 Qt 桌面編輯器。可編輯基本場景、分區並控制 default，功能範圍與 WebAdmin 不完全相同。</td></tr>
+      <tr><td>Profile</td><td>一份播放設定、一套 IPC/LOG/網站資料及一個 Player。名稱例如 default、screen2；名稱本身不會自動選中第幾台螢幕。</td></tr>
+      <tr><td>場景 Scene</td><td>播放清單中的一頁，包含名稱、停留秒數、列／欄數與多個分區。</td></tr>
+      <tr><td>分區 Zone</td><td>場景內一塊顯示區域，包含類型、內容、位置、尺寸及相關選項。Zone 編號從 0 開始。</td></tr>
+    </tbody></table>
+  </div>
+  <p>執行環境需要 Windows 圖形桌面、相容的顯示驅動及 WebView2 Runtime。網頁需要的 DNS、內網路由、外部圖磚連線或帳號權限，並不會由安裝 ScreenSplitter 自動提供。WebAdmin/API 預設沒有登入驗證，應放在既有的受控內部網路；需要限制來源時，可在資料目錄建立 api_access.json（見第 15 節），不影響播放；它也不是 Windows 服務或開機前的登入替代方案。</p>
+</section>
+
+<section id="profiles" aria-labelledby="profiles-title">
+  <h2 id="profiles-title">3. Profile 與儲存生效</h2>
+  <h3>選擇與新增</h3>
+  <ol>
+    <li>先確認頁首 Profile 下拉選單。瀏覽器會記住上次選擇，因此重新開啟時不一定停在 default。</li>
+    <li>新增前，先切到想複製的來源 Profile，完成編輯並按「儲存」。</li>
+    <li>輸入新的 Profile 名稱後按「新增」。建議用 <code>screen2</code>、<code>screen-3</code> 等英數名稱；後端接受英數、底線、點、連字號，其他字元會被整理，最長 64 字元。</li>
+    <li>系統複製來源<strong>已存到磁碟的 config.json</strong>，並切換至新 Profile。重新指定目標螢幕、內容與重啟設定後儲存。</li>
+    <li>確認新 Profile 的目標螢幕與既有 Profile 不衝突，再啟動 Player。</li>
+  </ol>
+  <p>複製只涵蓋設定，不會複製網站登入資料、快取、影片或外部 EXE。若名稱已存在，建立動作不會覆蓋其既有 config。現有 WebAdmin 沒有 Profile 刪除／重新命名按鈕；交接時保留清楚命名與資料位置，移除需求交由維護者在停播、備份後處理。</p>
+  <h3>什麼時候會生效</h3>
+  <p>一般編輯先留在瀏覽器，按「儲存」才寫入所選 Profile，成功後 WebAdmin 另送出 <code>RELOAD</code>，Player 重讀設定與目前場景。Player 未啟動時，設定仍可儲存，等下一次啟動載入。Player 也監看設定檔變化。</p>
+  <div class="important"><p><strong>切換 Profile 或重新整理前先儲存。</strong>切換會重新讀取另一份設定，未儲存的畫面編輯不會自動保留；不要同時由兩個舊分頁或桌面 Admin 編輯同一 Profile。儲存提交整份設定，後存者可能覆蓋前存者的內容。</p></div>
+  <p>「偵測 → 選擇螢幕」是例外：選擇後會立即調整畫布、縮放既有分區並自動儲存。新版對省略 <code>screen_device</code> 的舊設定提交會保留磁碟上原綁定，但這不是整份設定的多人合併機制。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="操作作用域">
+    <table><thead><tr><th scope="col">操作</th><th scope="col">作用域</th></tr></thead><tbody>
+      <tr><td>儲存、上一頁、下一頁、雙擊跳場景、播放／暫停、關閉</td><td>WebAdmin 目前選擇的 Profile。</td></tr>
+      <tr><td>全部關閉</td><td>WebServer 列出的所有 Profile。</td></tr>
+      <tr><td>鬧鐘、浮動控制球</td><td>控制 Profile <code>default</code>。screen2 等次要 Profile 不執行鬧鐘。</td></tr>
+      <tr><td>開啟手冊、關閉管理分頁</td><td>不會寫入設定，也不會改變目前播放。</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section id="scenes" aria-labelledby="scenes-title">
+  <h2 id="scenes-title">4. 場景、排序與播放控制</h2>
+  <ol>
+    <li>按左側「新增 ADD」，輸入有意義的名稱，例如「生產進度」或「安全事件」。新場景預設 10 秒、2 × 2，仍需用「自動排列」建立分區。</li>
+    <li>設定時長與列／欄，建立分區內容；按「儲存」。</li>
+    <li>拖曳左側場景調整順序，儲存後依清單由上而下輪播，最後一頁回第一頁。</li>
+    <li>單擊場景是選取編輯；<strong>雙擊是要求 Player 立即跳到該索引</strong>。新增或排序後先儲存，再雙擊，避免編輯器與 Player 的索引不同。</li>
+    <li>刪除場景會要求確認；儲存後才寫入設定。空清單不會產生可播放內容。</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="時長與播放狀態差異">
+    <table><thead><tr><th scope="col">設定／按鈕</th><th scope="col">實際行為</th></tr></thead><tbody>
+      <tr><td>時長大於 0</td><td>到期切到下一場景。這是場景停留時間，不會等待影片自然播放完畢。</td></tr>
+      <tr><td>時長 = 0</td><td>固定停在該場景，WebAdmin 顯示「固定」。仍可手動上一頁、下一頁或跳轉。</td></tr>
+      <tr><td>暫停</td><td>停止自動換場景；頁面中的資料更新、影片或外部程式不一定停止。不是整台播放器或所有媒體的暫停鍵。</td></tr>
+      <tr><td>繼續播放</td><td>依目前場景完整時長重新計時；不是接續原本剩餘秒數。0 秒場景仍維持固定。</td></tr>
+      <tr><td>暫停中手動換頁／重載</td><td>保留暫停狀態，顯示新的場景，但不重新啟動自動輪播。</td></tr>
+    </tbody></table>
+  </div>
+  <p>建議先把每一頁單獨顯示到確認內容穩定，再開始整輪驗收。場景切換會涉及網頁建立、影片載入或外部視窗調整，短秒數不代表內容一定來得及完成載入。</p>
+  <h3>在 Player 畫面現場操作</h3>
+  <p>default 畫面有「☰」浮動控制入口，點一下顯示／收起控制列，可按上一頁、暫停／播放、下一頁或「關閉播放」。Player 收到 <kbd>Esc</kbd> 或自身可接收的長按事件時，也可切換控制列；外部網頁／EXE 可能先接收鍵鼠事件，因此遠端維護以 WebAdmin 控制最直接。screen2 預設不建立浮動控制球。</p>
+</section>
+
+<section id="zones" aria-labelledby="zones-title">
+  <h2 id="zones-title">5. 分區與版面編輯</h2>
+  <h3>建立與調整版面</h3>
+  <ol>
+    <li>確認全域畫布寬高與目前螢幕用途。列／欄各可設定 1–10。</li>
+    <li>按「自動排列 AUTO」，以列 × 欄產生等分分區，並重新排好前面這些分區的 x、y、w、h。</li>
+    <li>在預覽內拖曳分區移動位置；拖右下角縮放控制點調整寬高。也可直接輸入「座標 POS」與「尺寸 SIZE」，用數值做精確調整。</li>
+    <li>「同步尺寸 SYNC」把 Zone 0 的寬、高套給其他現有分區；它不替其他分區重新排列位置。</li>
+    <li>用分區卡片的 × 刪除區域；選中預覽分區時可用 <kbd>Delete</kbd>，輸入欄位內的 Delete 仍是文字編輯。最後儲存。</li>
+  </ol>
+  <p>x、y 是相對此 Profile 畫布左上角的位置；w、h 是畫布單位下的寬高。這些不是 Windows 全桌面的螢幕座標。預覽是配置示意，不是實際網頁、影片或 EXE 的即時畫面。</p>
+  <div class="important"><p><strong>列／欄與分區數量須一致。</strong>Player 最多使用前 <code>rows × cols</code> 個分區。WebAdmin 減少列／欄不一定刪除陣列末端的舊分區；「自動排列」也不會自動刪除多餘項目。若看得到卡片卻沒有播放，先查編號是否超出這個上限。</p></div>
+  <p>重疊分區會在預覽提示碰撞；直接輸入仍可形成重疊。避免把重要內容放在畫布外，維持正的寬高。再按「自動排列」會覆寫已有的手動位置與尺寸，應先完成需要保留的設定備份。</p>
+  <h3>全域畫布尺寸變更</h3>
+  <p>更改寬高後儲存，或從偵測清單選螢幕，WebAdmin 會按舊／新畫布比例縮放<strong>全部場景</strong>既有的分區位置與尺寸。Player 再將畫布映射到當下 Qt 邏輯螢幕與外部視窗實體座標。變更解析度後要檢查所有場景，不只目前預覽的一頁。</p>
+</section>
+
+<section id="content" aria-labelledby="content-title">
+  <h2 id="content-title">6. 網頁、影片、EXE 與 RDP</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="內容類型與注意事項">
+    <table><thead><tr><th scope="col">類型</th><th scope="col">內容欄位</th><th scope="col">播放方式與限制</th></tr></thead><tbody>
+      <tr><td>網頁 WEB</td><td>完整網址，例如 <code>http://內部主機:連接埠/看板</code>。</td><td>預設以 WebView2 顯示。網站須在播放電腦可連線；管理電腦開得到不等於 Player 開得到。需要登入的網站，使用的是 Player 自己的網站資料環境。</td></tr>
+      <tr><td>影片 VIDEO</td><td>播放電腦可讀的檔案完整路徑，例如 <code>D:\Media\demo.mp4</code>。</td><td>預設生成本機 HTML5 影片頁交由 WebView2 播放，循環、自動播放、靜音；畫面採 cover 填滿，長寬比不同可能裁切。實際格式須由 WebView2/系統支援。既有進階設定也可使用 VLC 後端。</td></tr>
+      <tr><td>程式 EXE</td><td>可執行檔路徑；必要參數須正確引號，例如 <code>"D:\Display App\Viewer.exe"</code>。</td><td>Player 啟動／尋找外部視窗，再定位、縮放與管理顯示。不是把任意程式轉成網頁；程式自己的最小尺寸、登入框、權限、特殊渲染或多視窗可能影響結果。</td></tr>
+      <tr><td>遠端 RDP</td><td>遠端電腦 IP 或主機名稱。</td><td>呼叫 Windows <code>mstsc /v:目標</code>，仍需原有 RDP 權限、憑證確認與登入。現有追蹤以 mstsc 視窗為主，不保證多個同時 RDP 工作階段能各自正確綁入不同分區。</td></tr>
+    </tbody></table>
+  </div>
+  <p>內容欄位指定的是<strong>播放電腦</strong>的路徑，不是目前用來開 WebAdmin 的電腦。WebAdmin 沒有影片／EXE 上傳功能；先將檔案部署到播放電腦，並確認執行 Player 的 Windows 帳號能讀取。網路分享路徑還依賴連線與該帳號的存取權限；登入後才連上的磁碟機不保證能在自動啟動當下使用。</p>
+  <h3>分區選項的適用範圍</h3>
+  <ul>
+    <li><strong>強制更新／cache_bust：</strong>只針對網頁，每次進入場景以新的查詢參數導覽，詳見下一節。</li>
+    <li><strong>獨立程序／isolate_webview：</strong>供 WebView2 內容隔離使用；一般網頁先維持預設，共用環境有特定問題時才在該區域啟用。它不會把 EXE 或 RDP 改成 WebView。</li>
+    <li><strong>縮放 ZOOM／scale：</strong>WebAdmin 有此欄位，但目前預設外部 WebView2 命令未套用這個值；只有舊的內部 QtWebEngine 路徑使用 <code>setZoomFactor</code>。不要把它當作預設 WebView2 的可靠文字縮放功能；優先調整網站本身支援的顯示設定與分區尺寸。</li>
+    <li><strong>強制去邊框／strip_border：</strong>桌面 Admin 可設定，Player 對外部視窗依此處理，預設為 true。不同 EXE 不一定接受；仍需逐一驗收。</li>
+  </ul>
+  <p>既有 <code>global_settings.video_backend="vlc"</code> 會改用 VLC，程式優先尋找隨包的 <code>Player\VLC\vlc.exe</code>，再查其他既有位置；這是設定檔層級選項，WebAdmin 沒有後端切換按鈕。維持現場已驗收的選擇，別只因資料夾中有 VLC 就認定所有影片都由它播放。</p>
+</section>
+
+<section id="webview" aria-labelledby="webview-title">
+  <h2 id="webview-title">7. WebView、強制更新與登入狀態</h2>
+  <h3>共用與獨立模式</h3>
+  <p>「共用」是<strong>同一個 Profile 裡</strong>的 WebView host；default 與 screen2 的 host、命令、狀態及網站資料各自分開。一般模式會在場景交接後關閉不再需要的網頁視窗，預設不讓全部看板永久躲在背景執行。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="WebView 模式差異">
+    <table><thead><tr><th scope="col">項目</th><th scope="col">一般共用 host</th><th scope="col">獨立 WebView</th></tr></thead><tbody>
+      <tr><td>執行方式</td><td>每 Profile 一個 host 管理分區視窗。</td><td>分區另啟 WebViewPlayer；離開場景後關閉，回來重新啟動。</td></tr>
+      <tr><td>網站資料位置</td><td><code>&lt;Profile資料夾&gt;\web_profile\ExternalHost</code></td><td><code>&lt;Profile資料夾&gt;\web_profile\External\&lt;WebView tag&gt;</code></td></tr>
+      <tr><td>適用情況</td><td>一般看板預設方式。</td><td>特定網站的媒體、渲染或共用環境出現可重現問題時，單區域隔離驗證。</td></tr>
+      <tr><td>診斷</td><td>host 狀態可出現在 <code>webview_status.json</code> 與 diagnostics API。</td><td>主要查看自己的 <code>webview_&lt;tag&gt;.log</code>；不保證出現在共用 host 的 windows／last_probe 清單。</td></tr>
+    </tbody></table>
+  </div>
+  <p>獨立模式同時改變程序與網站儲存資料夾，可能需要重新登入，也可能讓網站看到另一套 localStorage 設定。它不是「清除原本資料」；切換模式後正常，只能先縮小問題範圍，不能直接認定原環境只有 HTTP 快取問題。</p>
+  <h3>強制更新不是清除全部快取</h3>
+  <p>啟用網頁「強制更新」後，Player 在每次進入場景時加入／替換 <code>_screensplitter</code> 查詢參數，保留其他查詢參數與片段。單次場景內的視窗定位迴圈會沿用同一 token，不是每半秒刷新網站。</p>
+  <ul>
+    <li>頁面重新導覽、圖磚／圖片的 HTTP 快取、Cookie、localStorage 是不同層次。</li>
+    <li>強制更新不會刪除 Cookie、登入憑證、網站設定或本機用量計數；也不保證網站的 Service Worker 或所有子資源都忽略快取。</li>
+    <li>普通 Edge/Chrome 與 Player 的 WebView2 使用不同資料環境；一邊已登入，不代表另一邊已登入。</li>
+    <li>獨立 tag 包含 Profile、場景索引與分區索引。重新排序場景／分區可能改變對應資料目錄，交接時不要只靠「第幾頁」記錄登入狀態。</li>
+  </ul>
+  <div class="important"><p>有問題時先保留 LOG 與資料位置。直接刪除 <code>web_profile</code> 會影響登入與網站設定，並不能用來證明原因；還原或清理前先依備份程序處理。</p></div>
+</section>
+
+<section id="screens" aria-labelledby="screens-title">
+  <h2 id="screens-title">8. 螢幕指定、DPI 與喚醒</h2>
+  <ol>
+    <li>先在 Windows 顯示設定確認延伸桌面、實際排列、解析度與縮放比例；要分別播放不同 Profile，應能辨識到不同螢幕。</li>
+    <li>WebAdmin 選 default → 全域系統配置「偵測」。列出的螢幕來自<strong>WebServer 所在電腦</strong>，不是管理電腦。</li>
+    <li>選擇 default 應使用的螢幕。此動作會保存設備識別 <code>screen_device</code>、位置與畫布尺寸，並立即儲存。</li>
+    <li>切到 screen2，選它應使用的另一台螢幕，再實際查看兩個 Player。</li>
+    <li>記錄螢幕名稱／device ID、解析度、Windows 縮放百分比、排列與連接埠，作為搬機及喚醒測試基準。</li>
+  </ol>
+  <p>有明確設備識別時，Player 優先用識別找螢幕；舊設定只有座標時仍有座標判斷。螢幕掉線會使座標／主螢幕排列改變，因此不要只靠「0,0」或「螢幕 1」推定目標。</p>
+  <h3>4.3.7 起的缺席等待／返回行為</h3>
+  <p>已指定的目標螢幕不存在時，Player 隱藏此 Profile 的畫面及追蹤視窗，停止場景計時，等待目標回來；IPC、退出控制及控制 Profile 的鬧鐘仍可運作。螢幕回來後恢復目標位置並重建原場景，保留使用者的暫停選擇及 0 秒固定設定。等待期間不應把該 Profile 的畫面轉放到另一台螢幕。</p>
+  <p>Windows、連接線、轉接器或顯示驅動不一定會在螢幕關電時回報移除；若作業系統仍把它視為在線，程式也無法僅靠這些事件知道實際面板是否亮起。喚醒必須在現場依實際硬體驗收。</p>
+  <h3>解析度與 DPI 的判讀</h3>
+  <p>設定畫布、Qt 邏輯尺寸、Win32/WebView 實體視窗尺寸可能不同，例如 150% 縮放下不能直接拿兩組數字相比就判定顯示錯誤。先比較螢幕 device、Windows 排列、DPR 與實際顯示；不要一遇到尺寸不同就改掉既有縮放比例。</p>
+  <p>換螢幕、換顯示卡／連接埠或搬機後，原識別可能改變。此時先用「偵測」確認新設備並重新選擇，不要刪除整份設定。若畫面仍跑錯位置，查看 LOG 的 <code>[Screen Wait]</code>、<code>[Screen Return]</code>、<code>[Screen Restore]</code> 與 <code>[Layout]</code>。</p>
+</section>
+
+<section id="settings" aria-labelledby="settings-title">
+  <h2 id="settings-title">9. 鬧鐘、排程重啟與自動啟動</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="全域設定說明">
+    <table><thead><tr><th scope="col">設定</th><th scope="col">使用方式與邊界</th></tr></thead><tbody>
+      <tr><td>中餐／起床／下班鬧鐘</td><td>只在 default 開啟相應開關並設定時間，儲存後由 default Player 執行。screen2 的控制欄位停用，後端也會把次要 Profile 的鬧鐘開關存為 false。</td></tr>
+      <tr><td>重啟 Restart</td><td>每 Profile 的 Player 重啟間隔，單位分鐘，範圍 0–1440；0 關閉。不是 Windows 重開機，也不是每天固定時刻的排程。缺少設定時程式預設 60 分鐘。</td></tr>
+      <tr><td>Web 自啟 Auto</td><td>已打包 WebServer 啟動時，檢查各 Profile 的此選項，對已啟用且離線者啟動 Player。預設 false；不是持續監控 Player 的常駐重啟服務。原始碼開發模式不執行這段啟動自檢。</td></tr>
+      <tr><td>Windows 登入自啟</td><td>安裝程式在目前使用者 Startup 建立「ScreenSplitter Players」捷徑，執行 run_player.bat。這與 Web 自啟選項不同；不是系統尚未登入時啟動。</td></tr>
+    </tbody></table>
+  </div>
+  <p>排程重啟會先建立同 Profile 的接替 Player，等待舊 PID 正常退出再啟動。若接替程序建立失敗，舊 Player 保持運作；成功後是重新啟動程序，不應假定會保留上一程序的倒數或暫停狀態。更改間隔會重新計算該定時器。</p>
+  <h3>鬧鐘實際條件</h3>
+  <p>鬧鐘依播放電腦本機時間檢查，default Player 必須正在執行。音檔名稱為 <code>lunch.mp3</code>、<code>wakeup.mp3</code>、<code>offwork.mp3</code>；優先查 Player 的 music 資料夾，再查資料目錄及上一層既有 music。可用音檔不存在／音訊模組不可用時，會嘗試 Windows 系統提示音。</p>
+  <p>程式在目標時間後 70 秒內允許觸發，不會為離線很久的鬧鐘整天補播。同一次程序執行中每日每類只記一次；去重記憶在程序內，重啟落在容錯區間仍須注意可能再響。鬧鐘不會替電腦從睡眠喚醒，也不保證螢幕喇叭或 Windows 音量已開啟。</p>
+  <p class="small">前場景清理與 WebView2 host 是目前 Player 固定的執行策略；WebAdmin 已移除其切換控制。不要照舊版說明尋找「關閉 host」或直接以舊進階鍵覆蓋目前行為。</p>
+</section>
+
+<section id="desktop" aria-labelledby="desktop-title">
+  <h2 id="desktop-title">10. 桌面 Admin 使用與限制</h2>
+  <p>以桌面「ScreenSplitter Admin」或 <code>run_admin.bat</code> 開啟。左側可新增／刪除場景、拖曳排序與儲存；右側可設定名稱、秒數、列／欄，拖拉預覽區域，編輯類型、內容、x/y/w/h、去邊框及獨立 WebView。雙擊場景可送出跳轉，控制列提供播放與換頁。</p>
+  <p>改完先按「儲存設定」；Player 透過設定檔監看讀入。關閉 Admin 視窗不會自動關閉 Player。本版的「使用說明」與 F1 直接用預設瀏覽器開啟離線手冊，不需要先啟動 WebServer。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="桌面 Admin 與 WebAdmin 功能差異">
+    <table><thead><tr><th scope="col">項目</th><th scope="col">桌面 Admin 現況</th><th scope="col">操作建議</th></tr></thead><tbody>
+      <tr><td>多 Profile</td><td>沒有 Profile 選單；控制用 IPC 路徑直接取資料根目錄。</td><td>只用於 default。screen2 請用 WebAdmin；不要以環境變數當作完整多 Profile 控制支援。</td></tr>
+      <tr><td>0 秒固定場景</td><td>時長輸入下限為 1；載入 0 後再儲存可能被改成 1。</td><td>含 0 秒場景的設定用 WebAdmin 維護。</td></tr>
+      <tr><td>螢幕偵測</td><td>以面積最大的螢幕取得實體解析度，縮放分區並儲存；不是 WebAdmin 的設備選擇器。</td><td>雙螢幕綁定請用 WebAdmin「偵測 → 選螢幕」。</td></tr>
+      <tr><td>列／欄減少</td><td>會按列 × 欄截短分區清單。</td><td>縮小前備份，避免丟失末端內容。</td></tr>
+      <tr><td>進階設定</td><td>沒有 WebAdmin 的強制更新、鬧鐘、排程重啟、Web 自啟 UI；也沒有一般 WebView2 網頁縮放功能。</td><td>相關設定以 WebAdmin 或由維護者核對設定檔。</td></tr>
+      <tr><td>在線狀態</td><td>約 3 秒沒有新狀態即顯示離線，與 Web API 的閾值不同。</td><td>短暫顯示離線先比對實際畫面、時間戳與程序，不要立即重複啟動。</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section id="data" aria-labelledby="data-title">
+  <h2 id="data-title">11. 實際資料位置與檔案</h2>
+  <p><strong>先查正在使用的 DATA_DIR，不能把路徑寫死。</strong><code>config_manager.py</code> 將 Player、WebServer、AdminTool 的父資料夾視為共同根目錄 SHARED_ROOT；原始碼執行時通常就是原始碼所在目錄。</p>
+  <ol>
+    <li>若 SHARED_ROOT 可寫，DATA_DIR 就是 SHARED_ROOT，即設定與程式並列的可攜式模式。</li>
+    <li>若不可寫，改用執行該程序之 Windows 使用者的 <code>%APPDATA%\ScreenSplitter</code>。</li>
+    <li>default 資料在 <code>&lt;DATA_DIR&gt;</code>；其他 Profile 在 <code>&lt;DATA_DIR&gt;\profiles\&lt;Profile名稱&gt;</code>。</li>
+  </ol>
+  <div class="important"><p>安裝腳本可能建立 <code>C:\ScreenSplitter_Data</code>，但目前程式沒有以此資料夾作為固定設定來源。只看到此資料夾，不能認定備份了它就完成備份。原始碼中的舊註解也不能取代實際路徑判別。</p></div>
+  <h3>如何確認</h3>
+  <p>唯讀查看 <code>/api/profiles</code> 的 <code>data_dir</code>／<code>config_path</code>，或 <code>/api/logs?profile=default</code> 的 <code>data_dir</code>；Player 的啟動／除錯紀錄也會記錄 Profile、Data Dir 與 IPC Paths。WebServer、Player、AdminTool 應使用同一安裝與相同 Windows 使用者權限；一個以其他帳號或不同權限啟動，可能讀寫到另一個資料根。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="資料檔用途">
+    <table><thead><tr><th scope="col">檔案／資料夾</th><th scope="col">用途與備份需求</th></tr></thead><tbody>
+      <tr><td><code>config.json</code></td><td>該 Profile 的畫布、螢幕綁定、鬧鐘／重啟與播放清單。必要備份。</td></tr>
+      <tr><td><code>profiles\…\config.json</code></td><td>其他 Profile 設定。備份不能只拿根目錄那一份。</td></tr>
+      <tr><td><code>web_profile</code></td><td>網站設定、Cookie、儲存與快取所在樹。需要保留網站狀態時，在停止 Player 後備份；跨電腦／Windows 帳號不保證登入可移植。</td></tr>
+      <tr><td><code>ipc_cmd.txt</code>、<code>ipc_status.json</code></td><td>執行中的指令與心跳。不是人工還原播放狀態的設定來源；搬機不要以舊副本取代新狀態。</td></tr>
+      <tr><td><code>api_access.json</code></td><td>選用的 WebAdmin/API 存取限制（權杖與允許 IP，見第 15 節）。不存在即為開放模式；內含權杖，備份時視同密碼保管。</td></tr>
+      <tr><td><code>webview_cmd.json</code>、<code>webview_status.json</code></td><td>該 Profile 的 WebView host 命令與診斷狀態。屬執行期資料。</td></tr>
+      <tr><td><code>*.log</code>、<code>stdout.txt</code>、<code>stderr.txt</code></td><td>故障證據；重啟前先保留。不是所有紀錄都會永久累積。</td></tr>
+      <tr><td>影片、EXE、客製 music</td><td>多半位於 config 指向的外部位置或 Player\music。設定備份不會自動收集這些檔案。</td></tr>
+    </tbody></table>
+  </div>
+  <p>Profile 新增只複製 config；刪除安裝資料夾、切換 Windows 使用者或改變目錄可寫性，都可能改變之後讀取的資料。遇到「設定像消失」時，先查新舊 DATA_DIR，再談重建。</p>
+</section>
+
+<section id="upgrade" aria-labelledby="upgrade-title">
+  <h2 id="upgrade-title">12. 安裝、升級與卸載</h2>
+  <h3>安裝／升級順序</h3>
+  <ol>
+    <li>記錄目前版本、安裝位置、Windows 執行帳號、實際 DATA_DIR 及 Profile 清單；依下一節備份。需要保留事故證據時先匯出 LOG。</li>
+    <li>在 WebAdmin「全部關閉」Players，確認內容視窗與對應程序結束，再關閉 Admin、停止 WebServer。</li>
+    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.3.8.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
+    <li>安裝包部署程式、資源、啟動 BAT 與 <code>docs\usage.html</code>；不把開發電腦的現場 config、profiles 或網站資料當成預設內容發送。</li>
+    <li>啟動 WebServer；核對原 Profile、螢幕綁定與內容仍在，再啟動 Players。依第 18 節實際驗收兩台螢幕與每種內容。</li>
+  </ol>
+  <p>安裝程式採目前使用者權限，實際目錄以安裝精靈及捷徑為準，可能位於使用者的 LocalAppData\Programs；不要假定每台都在 Program Files 或與另一台使用者路徑相同。若安裝後由精靈啟動 WebServer，只有啟用 Web 自啟的 Profile 會被該入口自動啟動。</p>
+  <h3>資料保留與卸載邊界</h3>
+  <p>正常原位置升級不應覆蓋使用者 config 或網站資料。安裝清理僅針對 4.3.5 曾誤帶的特定 ICU DLL；不是清空設定。仍需先備份，因為選錯安裝位置、執行帳號改變或手動刪資料夾會造成另一種結果。</p>
+  <p>卸載會移除安裝程式登記的程式檔與捷徑；使用期間產生的設定／LOG／網站資料，以及位於 %APPDATA% 的資料不應被視為一定已刪除或一定會保留。卸載不是備份，也不是網站帳號登出的替代方式。卸載後如要移除殘留資料，先確認實際 DATA_DIR 與備份，交由維護者針對明確路徑處理。</p>
+  <h3>4.3.5 的 Qt DLL 匯入問題</h3>
+  <p>歷史案例為 <code>ImportError: DLL load failed while importing QtWidgets: 找不到指定的程序</code>。當時打包環境把其他工具的 ICU DLL 帶進 Qt 程式，遮蔽 Windows 所需版本。4.3.6 起採乾淨建置 PATH、拒收意外 ICU 並執行真實 Player 啟動驗證，後續版本包含此修正。</p>
+  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.3.8，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
+</section>
+
+<section id="backup" aria-labelledby="backup-title">
+  <h2 id="backup-title">13. 備份、還原與搬機</h2>
+  <h3>備份</h3>
+  <ol>
+    <li>從 API／LOG 確認 DATA_DIR、每個 Profile 與安裝位置；記下版本及備份時間。</li>
+    <li>先保存要查的 LOG，再正常關閉 Players、Admin 與 WebServer，使設定及網站資料不再持續寫入。</li>
+    <li>複製根 <code>config.json</code>、完整 <code>profiles</code> 設定樹，以及需要保留的 <code>web_profile</code>、客製 music。若 DATA_DIR 就是安裝根，可整個保留一份版本化備份，但要清楚區分程式與現場資料。</li>
+    <li>另外收集 config 所指向的影片、外部 EXE 及其必要資源。記錄網站負責人、登入移交方式與外部路徑，不把密碼或 API key 寫進公開手冊。</li>
+    <li>檢查備份真的有每個 Profile 的 config、可讀且日期正確；把副本放在不會隨此次安裝／清理刪除的位置。</li>
+  </ol>
+  <h3>還原／搬機</h3>
+  <ol>
+    <li>新機先安裝完整程式與必要執行環境，以預定 Windows 帳號啟動一次 WebServer，確認新機實際 DATA_DIR，再停止它。</li>
+    <li>保留新機現狀備份後，把設定放回對應資料根與 profiles 子目錄；不要把舊 ipc_cmd、ipc_status 或 webview_status 當設定還原。</li>
+    <li>部署影片／EXE 等外部檔案。路徑不同時更新內容欄位；網路分享與 RDP 權限在新帳號下重新驗證。</li>
+    <li>如需網站資料，僅在程序都停止時還原其資料樹；Cookie 可能與原 Windows 帳號／電腦綁定，因此仍準備合法重新登入。不要保證複製 web_profile 就能移轉登入。</li>
+    <li>開 WebAdmin，逐 Profile 重新偵測並選擇新機螢幕。檢查 DPI、音訊輸出、自啟、重啟間隔與每個場景。</li>
+    <li>先驗收新機，再停用舊機，避免兩邊同時播放／產生鬧鐘或外部網站額外負載。保留能回退的原機資料與安裝版本。</li>
+  </ol>
+</section>
+
+<section id="troubleshooting" aria-labelledby="troubleshooting-title">
+  <h2 id="troubleshooting-title">14. 故障排除</h2>
+  <p>先記錄<strong>發生時間、Profile、場景／Zone、實際看到的症狀、最近變更</strong>，並保存當次 LOG。先分清「管理服務沒開」「Player 沒啟動」「視窗位置錯」「網頁內容局部失敗」，再選處理方法。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="常見問題與檢查順序">
+    <table><thead><tr><th scope="col">症狀</th><th scope="col">先查什麼／怎麼處理</th></tr></thead><tbody>
+      <tr><td>WebAdmin 打不開</td><td>在播放電腦測 <code>127.0.0.1:5000</code>，確認 WebServer 程序與 web_server.log；本機通而遠端不通再查 IP、路由、防火牆、5000 是否被其他程式占用。不要把外部看板網站的故障當成 WebAdmin 故障。</td></tr>
+      <tr><td>Web 能開，Player 不見</td><td>選對 Profile，確認已按 ▶；Web 自啟可能關閉。查指定螢幕是否缺席、stderr/startup_crash/restart.log，以及 Player.exe 是否來自正確安裝目錄。</td></tr>
+      <tr><td>顯示離線但螢幕還在動</td><td>比對 status_age、實際場景變化與 WebView 狀態。心跳寫入或主執行緒可能延遲；不要僅憑一次離線就判斷程序已死或反覆啟動。</td></tr>
+      <tr><td>輪播停在一頁</td><td>先查 duration 是否 0、paused 是否 true，以及目標螢幕是否進入等待。若都不是，再比對目前 scene_idx 的時間序列、例外與外部程式是否卡住。</td></tr>
+      <tr><td>程式到錯螢幕／開屏沒回來</td><td>查 Windows 是否重新辨識到目標、screen_device 是否仍吻合、是否只有舊座標。選正確 Profile 重新「偵測 → 選螢幕」，並查 Screen Wait/Return/Restore LOG。保留其他 Profile 的設定。</td></tr>
+      <tr><td>網路路徑錯誤</td><td>確認真正報錯的是啟動 BAT、外部 EXE、影片分享路徑或網站；用同一 Windows 帳號確認路徑與開機連線時序。舊版排程重啟曾有命令引號問題，新版已改用直接程序參數；不要先假定是交換器丟包。</td></tr>
+      <tr><td>網站空白／舊內容／登入失效</td><td>比對該網址在播放電腦與 Player 的結果、Loaded/last_error、模式及網站資料目錄。先確認網路和登入；部署後舊頁可針對該網頁評估強制更新，不能用來替代登入或修復網站程式。</td></tr>
+      <tr><td>地圖灰底但標記還在</td><td>網站框架可正常而圖磚失敗；可能涉及連線、服務拒絕、本機用量／時段設定或尺寸同步。共用模式且符合特定 overview 網址才有 mapDiagnostics；獨立模式需看獨立 LOG 與現場，不要清除全部儲存來猜原因。</td></tr>
+      <tr><td>影片黑畫面／無聲</td><td>查檔案是否存在、Player 帳號是否能讀、格式是否可由目前後端播放。預設 HTML5 影片是靜音循環；無聲不等於故障。VLC 模式另查 VLC 路徑與其程序。</td></tr>
+      <tr><td>EXE 視窗不進分區</td><td>先獨立確認 EXE 在同一使用者工作階段可啟動，再查路徑、引號、權限、最小尺寸、多視窗或特殊渲染。RDP 的登入／憑證提示仍需正常處理。</td></tr>
+      <tr><td>改完設定沒生效／隔天又回舊值</td><td>核對選取 Profile、儲存成功、實際 config_path；關掉過期編輯分頁後重開。確認是否另一 Admin／分頁後來提交整份舊設定，或啟動了另一安裝副本。</td></tr>
+      <tr><td>鬧鐘沒響／重複響</td><td>查 default Player 是否運作、開關與本機時鐘、音檔／喇叭／音量；核對是否於時間後容錯區間重啟，或有另一台播放電腦同時執行。</td></tr>
+    </tbody></table>
+  </div>
+  <h3>2026-09-29 的 209 案例：歷史參考</h3>
+  <p>當時的 <code>172.20.11.209</code> 回報使用 4.3.5 加 Qt 臨時修補。LOG 顯示主 Profile 曾依舊座標認到副螢幕；當天設定已明確綁定 default → BenQ TV、screen2 → VA3456-WQHD。overview 改為獨立 WebView 後，使用者回報地圖恢復。</p>
+  <p>獨立模式同時改變程序與網站儲存目錄，所以當時<strong>未證實</strong>究竟是圖磚 HTTP 快取、localStorage 的本機用量設定，還是共用渲染狀態。另有普通瀏覽器尺寸改變後 Leaflet 局部空白的重現證據，屬網站容器尺寸更新問題；ScreenSplitter 更新不等於已修好該外部網站。</p>
+  <p class="small">4.3.7 的螢幕等待／返回、host 延遲命令取消及診斷修正已納入後續版本。以上是歷史調查，不代表 2026-11-02 已重新驗證 209 的部署版本、即時 LOG 或硬體喚醒狀態；現況仍須現場回讀及驗收。</p>
+</section>
+
+<section id="diagnostics" aria-labelledby="diagnostics-title">
+  <h2 id="diagnostics-title">15. LOG 與唯讀 API</h2>
+  <h3>先看哪個 LOG</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="LOG 查核用途">
+    <table><thead><tr><th scope="col">名稱</th><th scope="col">用途</th></tr></thead><tbody>
+      <tr><td><code>player_debug.log</code></td><td>Player 啟動、Profile／路徑、排程重啟、螢幕等待／返回等重要事件；超過門檻會換成 .1 備份。</td></tr>
+      <tr><td><code>stdout.txt</code>／<code>stderr.txt</code></td><td>當次 Player 執行輸出與例外。正常取得單一實例鎖後重新啟動會重寫這兩檔，先留存再重啟。</td></tr>
+      <tr><td><code>startup_crash.txt</code></td><td>可進入程式啟動例外處理時留下的錯誤；很早的 DLL 匯入失敗不保證寫得出此檔。</td></tr>
+      <tr><td><code>restart.log</code></td><td>排程重啟的接替啟動資訊。確認時間、Profile、PID 是否接續。</td></tr>
+      <tr><td><code>webview_host.log</code></td><td>共用 host 開窗、導覽、顯示／隱藏、載入與恢復事件。</td></tr>
+      <tr><td><code>webview_&lt;tag&gt;.log</code></td><td>獨立 WebView 的視窗、載入與探測紀錄；tag 通常包含 Profile、場景及分區索引。</td></tr>
+      <tr><td><code>web_server.log</code></td><td>打包 WebServer 的啟動／請求相關輸出；WebServer 每次啟動會重寫。</td></tr>
+      <tr><td><code>command_audit.log</code></td><td>Web 控制命令、作用 Profile、退出清理與請求來源線索；啟用存取限制後，被拒絕的請求（[AUTH] denied）也記在這裡。</td></tr>
+      <tr><td><code>window_log.txt</code></td><td>視窗大小或狀態異常的自我修復紀錄。</td></tr>
+    </tbody></table>
+  </div>
+  <p>API 查不到某檔不代表磁碟不存在。LOG 列表只收指定副檔名、跳過部分敏感名稱；.1 等輪替檔未必列出。搜尋也只查尾端範圍，不是全檔歷史檢索。Profile 的 LOG 查找會回退到共同根等位置，<strong>要核對回傳 path</strong>，不能把 screen2 查到的共用 restart.log 當成 screen2 自己的事件。</p>
+  <h3>唯讀檢查範例</h3>
+  <p>下列是 GET 讀取，使用時把主機換成實際播放電腦。內容可能含內部網址、路徑與程序資訊，交接時只保留所需且已遮蔽的片段。</p>
+  <pre><code>http://127.0.0.1:5000/api/profiles
+http://127.0.0.1:5000/api/screens
+http://127.0.0.1:5000/api/status?scope=all
+http://127.0.0.1:5000/api/diagnostics?scope=all
+http://127.0.0.1:5000/api/logs?profile=default
+http://127.0.0.1:5000/api/logs/player_debug.log?profile=default&amp;lines=400
+http://127.0.0.1:5000/api/log-search?profile=default&amp;file=player_debug.log&amp;q=Screen%20Return
+http://127.0.0.1:5000/api/processes?scope=all</code></pre>
+  <p>在播放電腦 PowerShell 也可只讀取得狀態：</p>
+  <pre><code>$base = 'http://127.0.0.1:5000'
+Invoke-RestMethod "$base/api/status?scope=all"
+Invoke-RestMethod "$base/api/profiles"
+Invoke-RestMethod "$base/api/diagnostics?scope=all"</code></pre>
+  <p class="small">完整設定的 GET /api/config 會呼叫 ensure_profile；對不存在的 Profile 可能建立其資料。因此純診斷先用上述狀態、Profile 及 LOG 入口，避免拿未知名稱反覆查設定。POST /api/cmd、/api/run_player、/api/config、/api/profiles 都是有操作效果的介面，不屬於這組唯讀範例。</p>
+  <h3>限制遠端存取（選用，4.3.8 起）</h3>
+  <p>預設 WebAdmin/API 不驗證來源，與舊版相同。需要限制時，在實際 DATA_DIR（與 default 的 config.json 同一層，可由 /api/profiles 的 data_dir 確認）建立 <code>api_access.json</code>；不需重新啟動 WebServer，也不影響 Player 與播放：</p>
+  <pre><code>{
+  "token": "自行產生一段夠長的隨機字串",
+  "allowed_ips": ["172.20.10.5"]
+}</code></pre>
+  <p>規則：來自播放電腦本機（127.0.0.1／::1）的請求永遠允許；<code>allowed_ips</code> 內的 IP 不需權杖；其他來源必須附權杖。兩個欄位可只填其一。檔案存在但無法解析時只接受本機，直到修正為止。被拒絕的請求回 401，並記入 command_audit.log（每個來源每分鐘最多一筆）。原始碼模式也可改用環境變數 <code>SCREENSPLITTER_API_TOKEN</code> 指定權杖。</p>
+  <p>遠端讀取 LOG 或送指令時，把權杖放在 HTTP 標頭：</p>
+  <pre><code>$headers = @{ 'X-Api-Token' = '你的權杖' }
+Invoke-RestMethod "http://播放電腦IP:5000/api/status?scope=all" -Headers $headers
+curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/logs?profile=default"</code></pre>
+  <p>瀏覽器開啟 WebAdmin 時會先出現輸入權杖的頁面；輸入一次後以 HttpOnly Cookie 保留 30 天，權杖不會出現在網址列。移除限制只要刪除 <code>api_access.json</code>。<code>/help</code> 手冊入口維持公開。此機制只看 TCP 來源 IP，不信任 X-Forwarded-For；它不是帳號系統，權杖應視同密碼管理，不要寫進手冊或交接紀錄。</p>
+  <h3>健康指標怎麼解讀</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="健康指標限制">
+    <table><thead><tr><th scope="col">欄位</th><th scope="col">可得知</th><th scope="col">不能據此保證</th></tr></thead><tbody>
+      <tr><td><code>timestamp / status_age</code></td><td>Player 心跳的新舊；API 超過 8 秒標 stale/offline，桌面 Admin 閾值較短。</td><td>一次逾時不等於程序已終止；時間新也不保證所有內容正確。</td></tr>
+      <tr><td><code>scene_idx / paused / total / remaining</code></td><td>目前場景索引、暫停、總時長與計時。total=0 為固定。</td><td>remaining=0 可能是暫停／固定／等待；不能只看它推定故障。</td></tr>
+      <tr><td><code>webview.windows…state / last_error / last_probe</code></td><td>共用 host 是否載入、DOM 可讀與最近探測結果。</td><td>DOM complete 不能證明圖磚、API 資料、登入或整個看板內容正常。</td></tr>
+      <tr><td><code>render_health</code></td><td>抽樣內容是否接近整片黑／白及恢復動作線索。</td><td>有非黑白像素不代表內容正確；純色頁面也可能是合法內容。</td></tr>
+      <tr><td><code>processes</code></td><td>程序路徑、PID、命令列等輔助線索。</td><td>單靠快照歸類不能判定重複 Player；須比對完整 --profile 與實際程序樹。</td></tr>
+    </tbody></table>
+  </div>
+  <h3>特定 overview 地圖診斷</h3>
+  <p>共用 host 的 probe 僅在 <code>http://itom.lkeng.com.tw:8080/overview</code>（允許尾端斜線）加入 <code>last_probe.mapDiagnostics</code>。它以唯讀方式回傳地圖尺寸、圖磚 img 的 images/loaded/failed、純色 div 的 placeholders，以及網站本機保護的非機密欄位；不讀出 API key、不寫網站儲存，也不因灰圖自動重載。</p>
+  <ul>
+    <li><code>placeholders &gt; 0</code> 且 <code>carto.reason=budget</code>：支持該 WebView 本機安全上限阻擋圖磚的判斷。</li>
+    <li><code>carto.reason=schedule</code>／<code>disabled</code>：反映讀取到的本機時段／啟用設定。</li>
+    <li><code>images &gt; 0</code>、<code>failed &gt; 0</code>：有圖磚影像載入失敗，續查連線、DNS、服務回應、快取或憑證等。</li>
+    <li><code>currentAllowed=true</code>：只表示依已知網站本機保護條件推算可請求，不代表 API key 有效、服務端授權成功或圖磚已載入。</li>
+    <li><code>storage_unavailable</code>／<code>usage_unavailable</code>：資料讀取或計數無法可靠判斷，null 不是 0。</li>
+  </ul>
+  <p>此診斷以當時確認的網站保護規則（100,000 次本機估算上限）為依據，並非 CARTO 官方帳務統計。網站日後更版時需重新核對。<strong>overview 如果使用獨立 WebView，不會因此自動出現在共用 host 的 mapDiagnostics。</strong>也不能在管理電腦開網站管理頁，便宣稱讀到了播放電腦 WebView 的 localStorage。</p>
+</section>
+
+<section id="technical" aria-labelledby="technical-title">
+  <h2 id="technical-title">16. 程式與 IPC 技術交接</h2>
+  <h3>原始碼責任</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="原始碼結構">
+    <table><thead><tr><th scope="col">來源檔</th><th scope="col">責任</th></tr></thead><tbody>
+      <tr><td><code>player.py</code></td><td>Qt 主視窗、場景計時、分區、外部視窗／WebView host 管理、螢幕恢復、鬧鐘與自我重啟。</td></tr>
+      <tr><td><code>webview_player.py</code></td><td>pywebview / WebView2 的單窗或多窗 host、命令排程、載入／DOM 探測、原生同 URL reload。</td></tr>
+      <tr><td><code>web_server.py</code>、<code>templates/web_admin.html</code></td><td>Flask API 與 WebAdmin 編輯／控制介面。打包時帶入 templates/static。</td></tr>
+      <tr><td><code>admin.py</code></td><td>本機 Qt 編輯器及 default 的直接 IPC 控制。</td></tr>
+      <tr><td><code>config_manager.py</code></td><td>共同資料根、Profile 路徑、名稱整理、設定讀取與原子儲存。</td></tr>
+      <tr><td><code>docs/usage.html</code></td><td>本離線使用與交接說明；程式入口只開文件，不參與播放流程。</td></tr>
+      <tr><td><code>build_release.py</code>、<code>setup_script.iss</code></td><td>PyInstaller 四個元件、資源整合、啟動 BAT 與 Inno Setup 安裝包。</td></tr>
+      <tr><td><code>tests/</code></td><td>設定保存、執行控制、螢幕等待、地圖只讀診斷、WebView 延遲命令等回歸檢查。</td></tr>
+    </tbody></table>
+  </div>
+  <h3>交付安裝結構</h3>
+  <pre><code>&lt;安裝根&gt;\
+  Player\Player.exe
+    _internal\...
+    WebViewPlayer\WebViewPlayer.exe
+    VLC\...                 （有隨包 VLC 時）
+    music\...
+  WebServer\WebServer.exe
+    templates\web_admin.html
+    static\...
+  AdminTool\AdminTool.exe
+  docs\usage.html
+  run_player.bat
+  run_webserver.bat
+  run_admin.bat
+  kill_webserver.bat
+
+&lt;DATA_DIR&gt;\                  （可能與安裝根相同）
+  config.json                 default
+  web_profile\...
+  profiles\screen2\config.json
+  profiles\screen2\web_profile\...</code></pre>
+  <p>PyInstaller onedir 的 EXE、_internal 與附屬資源是一組，不應抽出單一 EXE 當作完整發行包。原始碼根的舊 build.bat、舊 spec、歷史「架構／工程開發日誌」等只作專案背景；它們可能記載已淘汰流程，不是此版操作或交付的權威來源，也不保證隨安裝包提供。</p>
+  <h3>IPC 與更新流程</h3>
+  <p>WebAdmin 儲存經 WebServer → config_manager 寫入該 Profile config；命令則由 WebServer 寫該 Profile 的 <code>ipc_cmd.txt</code>。Player 定期讀取並刪除命令檔，寫出 <code>ipc_status.json</code>。命令檔是單一槽位，不是可靠累積佇列；不要高速連送並假定每一筆都必定依序處理。</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="IPC 指令">
+    <table><thead><tr><th scope="col">指令</th><th scope="col">作用</th></tr></thead><tbody>
+      <tr><td><code>NEXT</code>／<code>PREV</code></td><td>切換下一／上一場景。</td></tr>
+      <tr><td><code>JUMP n</code></td><td>跳至從 0 開始的場景索引 n。</td></tr>
+      <tr><td><code>PAUSE</code>／<code>RESUME</code></td><td>停止場景計時／以當前場景時長重新計時。</td></tr>
+      <tr><td><code>RELOAD</code></td><td>重讀該 Profile 設定與場景。</td></tr>
+      <tr><td><code>EXIT</code></td><td>Player 正常退出。WebServer 的 EXIT API 另有依 Profile 的延後清理。</td></tr>
+    </tbody></table>
+  </div>
+  <p>WebView host 用同 Profile 的 <code>webview_cmd.json</code> 批次交換 upsert/open/show/hide/close/reload/probe/exit 等命令，視窗以 tag 區分。hide/close 會取消同 tag 舊的延遲開窗命令。<code>webview_status.json</code> 是 host 狀態，與 Player 的 ipc_status 不同。不要讓不同 Profile 共用這些檔案或網站資料路徑。</p>
+  <p>Player 每 Profile 有單一實例 mutex；同一 Profile 重複啟動會退出新增實例。Profile 名稱整理後仍應保持簡單且彼此明顯不同，避免僅靠符號差異命名。HTTP 命令回覆成功表示請求已接受／寫入，驗收仍應查看後續狀態與實際畫面。</p>
+</section>
+
+<section id="build" aria-labelledby="build-title">
+  <h2 id="build-title">17. 測試與安裝包製作</h2>
+  <p>本專案目前位於 <code>D:\ScreenSplitter</code>。2026-11-02 查核的建置 Python 為 <code>venv\Scripts\python.exe</code>，Python 3.11.9、PySide6 6.10.1、PyInstaller 6.18.0。專案另有 .venv 等資料夾，不能因名稱相近就混用；更換環境前先保存與核對套件版本。</p>
+  <h3>回歸檢查</h3>
+  <pre><code>Set-Location -LiteralPath 'D:\ScreenSplitter'
+&amp; '.\venv\Scripts\python.exe' -m unittest discover -s tests -v
+&amp; '.\venv\Scripts\python.exe' -m py_compile player.py webview_player.py web_server.py admin.py config_manager.py build_release.py</code></pre>
+  <p>地圖 probe 測試透過現有 Node 執行真實 JavaScript；若找不到 Node，測試會標示 skipped，不能把整體沒有失敗當成已跑過該情境。確認測試輸出的執行數、略過項目與失敗內容。UI／螢幕／影片實機驗收不由這些單元測試取代。</p>
+  <h3>建立完整發行目錄與安裝檔</h3>
+  <pre><code>Set-Location -LiteralPath 'D:\ScreenSplitter'
+&amp; '.\venv\Scripts\python.exe' '.\build_release.py'
+&amp; 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' '.\setup_script.iss'</code></pre>
+  <p>Inno Setup 路徑依實際安裝調整。build_release 會先清理專案的生成用 <code>build</code> 目錄，再建立 AdminTool、Player、WebServer、WebViewPlayer 四個 onedir 元件，整合成 <code>build\ScreenSplitter_Dist</code>；需要保留的前一版產物先另存。安裝檔輸出為 <code>build\ScreenSplitter_Setup.exe</code>。</p>
+  <p>建置腳本會限制 PATH，只保留建置 Python 與 Windows 必要位置，避免其他工具提供同名 Qt 依賴。整合時若 Player/AdminTool 意外帶入 <code>_internal\icuuc.dll</code>，建置會失敗；不可刪掉檢查、再宣稱打包成功。</p>
+  <p>腳本也會對真正要交付的 Player.exe 執行 offscreen QWidget 啟動檢查，輸出載入的 Qt／ICU 資訊。這證明封裝程式能載入 Qt，不代表所有外部網站、螢幕喚醒與現場帳號已驗收。</p>
+  <h3>發版核對</h3>
+  <ol>
+    <li>確認 setup_script.iss 版本、手冊版本及交付檔名一致；確認 docs/usage.html 真的進入發行目錄與安裝包。</li>
+    <li>確認 build log 沒有元件缺漏；templates/static、WebViewPlayer 與需要的影片／音訊後端資源齊全。</li>
+    <li>確認不把現場 config、profiles、web_profile、憑證、LOG dump 或測試資料夾打包給另一台電腦。</li>
+    <li>用實際封裝 EXE 做 Player 啟動與 WebView 載入、同 URL reload、hide/show、延遲開窗取消檢查；多螢幕再做關屏／開屏測試。</li>
+    <li>完成後將安裝檔另外留存為有版本名稱的發行檔，保存雜湊、測試紀錄與變更摘要。單看檔名不足以認定內容版本。</li>
+  </ol>
+  <pre><code>Get-Item -LiteralPath '.\build\ScreenSplitter_Setup.exe' |
+  Select-Object -ExpandProperty VersionInfo
+Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</code></pre>
+  <p class="small">4.3.7 的歷史交付曾有回歸測試、實際 Qt 與 WebView smoke 證據；這些不能自動代替 4.3.8 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
+</section>
+
+<section id="handover" aria-labelledby="handover-title">
+  <h2 id="handover-title">18. 交接與驗收清單</h2>
+  <p>將下面資料填在團隊既有交接紀錄，不需要把帳密寫進手冊。接手人至少能自行啟停、辨識資料位置、還原設定及取得一次有效故障證據。</p>
+  <ul class="checklist">
+    <li><strong>版本：</strong>安裝檔版本、SHA-256、實際安裝日期、套用的臨時修補及可回退版本。</li>
+    <li><strong>電腦：</strong>主機名稱／IP、Windows 執行帳號、安裝路徑、實際 DATA_DIR、WebServer 連接方式。</li>
+    <li><strong>Profile：</strong>default、screen2 及其他名稱；用途、設定路徑、誰負責修改，避免多人同時覆寫。</li>
+    <li><strong>兩台螢幕：</strong>設備名稱／device ID、對應 Profile、解析度、DPI、桌面排列與接線；不能只寫「大台／小台」。</li>
+    <li><strong>外部內容：</strong>網站 URL 與負責人、所需網路／帳號權限、合法登入移交管道；影片、EXE、音檔與 RDP 的位置及負責人。</li>
+    <li><strong>播放設定：</strong>每頁名稱、秒數、0 秒固定用途；特別啟用獨立 WebView 或強制更新的原因。</li>
+    <li><strong>自動行為：</strong>Windows Startup、BAT、Web 自啟、每 Profile 重啟間隔；default 的鬧鐘時間與音訊輸出。</li>
+    <li><strong>備份：</strong>最近備份日期、存放位置、包含哪些 Profile／媒體／網站資料，以及一次還原核對結果。</li>
+    <li><strong>正常播放驗收：</strong>兩個 Player 各在正確螢幕；整輪場景依序顯示，秒數正確，固定頁、暫停／繼續、上一／下一／跳轉都符合預期。</li>
+    <li><strong>內容驗收：</strong>網頁資料時間、圖磚與標記、登入狀態、影片裁切與聲音預期、EXE/RDP 的視窗與操作均由現場確認。</li>
+    <li><strong>作用域驗收：</strong>關閉／啟動單一 Profile 不影響另一台；鬧鐘僅由 default；關閉管理介面不停止播放。</li>
+    <li><strong>螢幕恢復驗收：</strong>關閉目標電視後另一畫面不被覆蓋，重新開啟後回到指定位置；以實際硬體及 LOG 的 Wait/Return 共同核對。</li>
+    <li><strong>重啟驗收：</strong>排程重啟與 Windows 登入啟動符合設定，不出現舊網路路徑／Qt DLL 錯誤，也沒有重複內容視窗。</li>
+    <li><strong>說明入口：</strong>WebAdmin「使用說明」、桌面 Admin「使用說明」／F1，以及離線 docs/usage.html 均能閱讀；閱讀不改變播放或設定。</li>
+    <li><strong>未解事項：</strong>列出未重現、待網站負責人、待硬體測試或尚未部署的項目；不要用歷史 healthy/成功畫面代替當前驗收。</li>
+  </ul>
+  <a class="top" href="#top">回到目錄 ↑</a>
+</section>
+</main>
+</div>
+<footer>ScreenSplitter 4.3.8 使用說明與交接指南 · 2026-11-02。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
+</body>
+</html>
