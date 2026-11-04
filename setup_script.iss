@@ -1,7 +1,7 @@
 ﻿; Inno Setup script for ScreenSplitter
 
 #define MyAppName "ScreenSplitter"
-#define MyAppVersion "4.3.8"
+#define MyAppVersion "4.3.9"
 #define MyAppPublisher "Bevis"
 #define MyAppExeName "run_webserver.bat"
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>ScreenSplitter 4.3.8 使用說明與交接指南</title>
+  <title>ScreenSplitter 4.3.9 使用說明與交接指南</title>
   <style>
     :root { --ink:#172c3b; --muted:#526572; --brand:#006b70; --line:#d4e0e4; --paper:#fff; --soft:#eef5f6; }
     * { box-sizing:border-box; }
@@ -97,8 +97,8 @@
 <header id="top">
   <p class="eyebrow">SCREEN SPLITTER · OPERATIONS &amp; HANDOVER</p>
   <h1>使用說明與交接指南</h1>
-  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.3.8 的 Windows 安裝版及對應原始碼。</p>
-  <div class="meta"><span>文件版本：4.3.8</span><span>修訂日期：2026-11-02</span><span>可離線閱讀／列印</span></div>
+  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.3.9 的 Windows 安裝版及對應原始碼。</p>
+  <div class="meta"><span>文件版本：4.3.9</span><span>修訂日期：2026-11-04</span><span>可離線閱讀／列印</span></div>
 </header>
 <div class="layout">
 <nav aria-label="使用說明目錄">
@@ -250,7 +250,7 @@
   <ul>
     <li><strong>強制更新／cache_bust：</strong>只針對網頁，每次進入場景以新的查詢參數導覽，詳見下一節。</li>
     <li><strong>獨立程序／isolate_webview：</strong>供 WebView2 內容隔離使用；一般網頁先維持預設，共用環境有特定問題時才在該區域啟用。它不會把 EXE 或 RDP 改成 WebView。</li>
-    <li><strong>縮放 ZOOM／scale：</strong>WebAdmin 有此欄位，但目前預設外部 WebView2 命令未套用這個值；只有舊的內部 QtWebEngine 路徑使用 <code>setZoomFactor</code>。不要把它當作預設 WebView2 的可靠文字縮放功能；優先調整網站本身支援的顯示設定與分區尺寸。</li>
+    <li><strong>縮放 ZOOM／scale：</strong>4.3.9 起會套用到網頁的共用與獨立 WebView2；1＝100%、2.5＝250%，範圍 0.25–5。修改後按「儲存」。共用視窗直接更新倍率；獨立模式只在設定倍率改變時重建該分區。影片、EXE、RDP 不套用此欄位。4.3.8 及更早的預設 WebView2 曾漏傳此設定。</li>
     <li><strong>強制去邊框／strip_border：</strong>桌面 Admin 可設定，Player 對外部視窗依此處理，預設為 true。不同 EXE 不一定接受；仍需逐一驗收。</li>
   </ul>
   <p>既有 <code>global_settings.video_backend="vlc"</code> 會改用 VLC，程式優先尋找隨包的 <code>Player\VLC\vlc.exe</code>，再查其他既有位置；這是設定檔層級選項，WebAdmin 沒有後端切換按鈕。維持現場已驗收的選擇，別只因資料夾中有 VLC 就認定所有影片都由它播放。</p>
@@ -258,6 +258,9 @@
 
 <section id="webview" aria-labelledby="webview-title">
   <h2 id="webview-title">7. WebView、強制更新與登入狀態</h2>
+  <h3>滑鼠縮放與固定倍率</h3>
+  <p>4.3.9 起，將滑鼠移到播放器中的網頁，按住 <kbd>Ctrl</kbd> 再向上滾動可放大、向下滾動可縮小。單獨滾輪保留頁面捲動或網站自己的地圖操作。程式不會在例行視窗定位時把手動倍率改回去；這項修正不會額外開啟所有瀏覽器鍵盤快捷鍵。</p>
+  <p>滾輪調整屬目前頁面的暫時狀態，不會寫回 WebAdmin。重新導覽、重建視窗或修改設定時，會依網站／WebView2 行為回到設定倍率；需要長期固定時，請在 ZOOM 欄位設定並儲存。這是網頁縮放，並非影片裁切／數位放大；以視窗百分比排版的滿版影片或圖表，可能仍會填滿原分區。</p>
   <h3>共用與獨立模式</h3>
   <p>「共用」是<strong>同一個 Profile 裡</strong>的 WebView host；default 與 screen2 的 host、命令、狀態及網站資料各自分開。一般模式會在場景交接後關閉不再需要的網頁視窗，預設不讓全部看板永久躲在背景執行。</p>
   <div class="table-wrap" tabindex="0" role="region" aria-label="WebView 模式差異">
@@ -325,7 +328,7 @@
       <tr><td>0 秒固定場景</td><td>時長輸入下限為 1；載入 0 後再儲存可能被改成 1。</td><td>含 0 秒場景的設定用 WebAdmin 維護。</td></tr>
       <tr><td>螢幕偵測</td><td>以面積最大的螢幕取得實體解析度，縮放分區並儲存；不是 WebAdmin 的設備選擇器。</td><td>雙螢幕綁定請用 WebAdmin「偵測 → 選螢幕」。</td></tr>
       <tr><td>列／欄減少</td><td>會按列 × 欄截短分區清單。</td><td>縮小前備份，避免丟失末端內容。</td></tr>
-      <tr><td>進階設定</td><td>沒有 WebAdmin 的強制更新、鬧鐘、排程重啟、Web 自啟 UI；也沒有一般 WebView2 網頁縮放功能。</td><td>相關設定以 WebAdmin 或由維護者核對設定檔。</td></tr>
+      <tr><td>進階設定</td><td>沒有 WebAdmin 的強制更新、鬧鐘、排程重啟、Web 自啟 UI，也沒有網頁縮放倍率欄位。</td><td>固定倍率等設定以 WebAdmin 維護；播放器網頁仍可用 Ctrl＋滾輪暫時縮放。</td></tr>
       <tr><td>在線狀態</td><td>約 3 秒沒有新狀態即顯示離線，與 Web API 的閾值不同。</td><td>短暫顯示離線先比對實際畫面、時間戳與程序，不要立即重複啟動。</td></tr>
     </tbody></table>
   </div>
@@ -363,7 +366,7 @@
   <ol>
     <li>記錄目前版本、安裝位置、Windows 執行帳號、實際 DATA_DIR 及 Profile 清單；依下一節備份。需要保留事故證據時先匯出 LOG。</li>
     <li>在 WebAdmin「全部關閉」Players，確認內容視窗與對應程序結束，再關閉 Admin、停止 WebServer。</li>
-    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.3.8.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
+    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.3.9.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
     <li>安裝包部署程式、資源、啟動 BAT 與 <code>docs\usage.html</code>；不把開發電腦的現場 config、profiles 或網站資料當成預設內容發送。</li>
     <li>啟動 WebServer；核對原 Profile、螢幕綁定與內容仍在，再啟動 Players。依第 18 節實際驗收兩台螢幕與每種內容。</li>
   </ol>
@@ -373,7 +376,7 @@
   <p>卸載會移除安裝程式登記的程式檔與捷徑；使用期間產生的設定／LOG／網站資料，以及位於 %APPDATA% 的資料不應被視為一定已刪除或一定會保留。卸載不是備份，也不是網站帳號登出的替代方式。卸載後如要移除殘留資料，先確認實際 DATA_DIR 與備份，交由維護者針對明確路徑處理。</p>
   <h3>4.3.5 的 Qt DLL 匯入問題</h3>
   <p>歷史案例為 <code>ImportError: DLL load failed while importing QtWidgets: 找不到指定的程序</code>。當時打包環境把其他工具的 ICU DLL 帶進 Qt 程式，遮蔽 Windows 所需版本。4.3.6 起採乾淨建置 PATH、拒收意外 ICU 並執行真實 Player 啟動驗證，後續版本包含此修正。</p>
-  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.3.8，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
+  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.3.9，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
 </section>
 
 <section id="backup" aria-labelledby="backup-title">
@@ -477,6 +480,7 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
       <tr><td><code>processes</code></td><td>程序路徑、PID、命令列等輔助線索。</td><td>單靠快照歸類不能判定重複 Player；須比對完整 --profile 與實際程序樹。</td></tr>
     </tbody></table>
   </div>
+  <p>4.3.9 改善黑白畫面檢查的取樣效能，並在視窗最小化、超出桌面、檢查點被其他視窗遮住或擷取失敗時回報無法判定，避免把這些情況直接當成黑畫面故障。<code>healthy</code> 仍只代表 DOM 可讀；登入頁也可能是 healthy，需核對實際網址與內容。</p>
   <h3>特定 overview 地圖診斷</h3>
   <p>共用 host 的 probe 僅在 <code>http://itom.lkeng.com.tw:8080/overview</code>（允許尾端斜線）加入 <code>last_probe.mapDiagnostics</code>。它以唯讀方式回傳地圖尺寸、圖磚 img 的 images/loaded/failed、純色 div 的 placeholders，以及網站本機保護的非機密欄位；不讀出 API key、不寫網站儲存，也不因灰圖自動重載。</p>
   <ul>
@@ -568,7 +572,7 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
   <pre><code>Get-Item -LiteralPath '.\build\ScreenSplitter_Setup.exe' |
   Select-Object -ExpandProperty VersionInfo
 Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</code></pre>
-  <p class="small">4.3.7 的歷史交付曾有回歸測試、實際 Qt 與 WebView smoke 證據；這些不能自動代替 4.3.8 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
+  <p class="small">舊版的回歸測試、實際 Qt 與 WebView smoke 證據不能自動代替 4.3.9 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
 </section>
 
 <section id="handover" aria-labelledby="handover-title">
@@ -595,6 +599,6 @@ Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</
 </section>
 </main>
 </div>
-<footer>ScreenSplitter 4.3.8 使用說明與交接指南 · 2026-11-02。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
+<footer>ScreenSplitter 4.3.9 使用說明與交接指南 · 2026-11-04。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
 </body>
 </html>

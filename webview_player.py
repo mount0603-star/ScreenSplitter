@@ -7,6 +7,7 @@ import os
 import json
 import threading
 import logging
+import math
 
 
 def _enable_per_monitor_dpi_awareness():
@@ -105,6 +106,43 @@ def _run_on_native_ui(win, callback):
         from System import Action
         return native.Invoke(Action(callback))
     return callback()
+
+
+def normalize_webview_scale(value):
+    try:
+        value = float(value)
+        return max(0.25, min(5.0, value)) if math.isfinite(value) and value > 0 else 1.0
+    except (TypeError, ValueError, OverflowError):
+        return 1.0
+
+
+def apply_webview_zoom(win, scale):
+    """Update the configured default once; repeated layout commands retain user zoom."""
+    win._requested_zoom = normalize_webview_scale(scale)
+    if getattr(win, '_configured_zoom', None) == win._requested_zoom:
+        return True
+    if getattr(win, 'native', None) is None:
+        return False  # The loaded event will apply it after WebView2 initializes.
+
+    def apply_native():
+        value = win._requested_zoom
+        if getattr(win, '_configured_zoom', None) == value:
+            return True
+        browser = getattr(win.native, 'browser', None)
+        control = getattr(browser, 'webview', None)
+        if control is None or getattr(control, 'CoreWebView2', None) is None:
+            return False
+        control.ZoomFactor = value
+        win._configured_zoom = value
+        print(f'[WebView Zoom] {win.title}: configured={value}')
+        return True
+
+    try:
+        _run_on_native_ui(win, apply_native)
+        return getattr(win, '_configured_zoom', None) == win._requested_zoom
+    except Exception as e:
+        print(f'[WebView Zoom] Apply failed: {e}')
+        return False
 
 
 def reload_webview(win, url):
@@ -208,6 +246,7 @@ def run_webview():
     parser.add_argument('--y', type=int, default=0, help='Y Position')
     parser.add_argument('--width', type=int, default=800, help='Width')
     parser.add_argument('--height', type=int, default=600, help='Height')
+    parser.add_argument('--scale', type=normalize_webview_scale, default=1.0, help='Page zoom (0.25 to 5.0)')
     parser.add_argument('--profile-path', default=None, help='Storage Path for Cookies/Data')
     parser.add_argument('--safe-mode', action='store_true', help='Disable GPU/zero-copy for stability')
     parser.add_argument('--browser-args', default='', help='Extra WebView2 browser arguments')
@@ -232,7 +271,7 @@ def run_webview():
                 "-h", "--help", "--url", "--title", "--x", "--y",
                 "--width", "--height", "--profile-path", "--safe-mode",
                 "--browser-args", "--debug", "--host", "--cmd-path",
-                "--status-path", "--log-path", "--viewport-fix"
+                "--status-path", "--log-path", "--viewport-fix", "--scale"
             }
             if nxt.startswith("--") and nxt not in known_opts:
                 argv[idx] = f"--browser-args={nxt}"
@@ -275,8 +314,10 @@ def run_webview():
         frameless=True,
         easy_drag=False,
         on_top=False,     # Let player.py manage Z-order or keep it normal
-        text_select=True
+        text_select=True,
+        zoomable=True
     )
+    win._requested_zoom = args.scale
 
     standalone_state = {"last_recovery": 0.0, "probe_failures": 0, "stopped": False}
 
@@ -373,6 +414,7 @@ def run_webview():
 
     def _on_standalone_loaded(window):
         print(f"[WebView Standalone] Loaded: {args.url}")
+        apply_webview_zoom(window, args.scale)
         standalone_state["probe_failures"] = 0
         if args.viewport_fix or _url_needs_viewport_fix(args.url):
             _schedule_viewport_refresh(window)
@@ -427,7 +469,7 @@ def run_webview_host(args):
             with meta_lock:
                 window_status = {}
                 public_fields = (
-                    "url", "x", "y", "w", "h", "shown", "state",
+                    "url", "x", "y", "w", "h", "shown", "state", "scale",
                     "created_at", "load_started_at", "loaded_at", "last_probe_at",
                     "last_probe", "last_error", "last_error_at", "last_event",
                     "last_event_at", "recovery_count", "last_recovery_at",
@@ -735,6 +777,7 @@ def run_webview_host(args):
 
             def _loaded(window, _tag=tag):
                 now = time.time()
+                apply_webview_zoom(window, getattr(window, '_requested_zoom', 1.0))
                 _update_meta(
                     _tag,
                     state="loaded",
@@ -862,9 +905,10 @@ def run_webview_host(args):
         meta[tag] = m
         _schedule_viewport_refresh(win)
 
-    def _ensure_window(tag, url, x, y, w, h, show=True, reload_on_show=False, viewport_fix=False):
+    def _ensure_window(tag, url, x, y, w, h, show=True, reload_on_show=False, viewport_fix=False, scale=1.0):
         if not tag:
             return
+        scale = normalize_webview_scale(scale)
         print(f"[WebView Host] Ensure {tag}: show={bool(show)} url={url}")
         viewport_fix = bool(viewport_fix) or _url_needs_viewport_fix(url)
         win = windows.get(tag)
@@ -884,7 +928,8 @@ def run_webview_host(args):
                     frameless=True,
                     easy_drag=False,
                     on_top=False,
-                    text_select=True
+                    text_select=True,
+                    zoomable=True
                 )
             except Exception as e:
                 print(f"[WebView Host] create_window failed for {tag}: {e}")
@@ -901,6 +946,7 @@ def run_webview_host(args):
                     "h": th,
                     "shown": bool(show),
                     "viewport_fix": bool(viewport_fix),
+                    "scale": scale,
                     "state": "loading",
                     "created_at": now,
                     "load_started_at": now,
@@ -909,10 +955,12 @@ def run_webview_host(args):
                     "recovery_count": 0,
                     "probe_failures": 0,
                 }
+            win._requested_zoom = scale
             _wire_window_events(tag, win)
             _maybe_refresh_viewport(tag, win, force=True)
         else:
             m = meta.get(tag) or {}
+            m['scale'] = scale
             prev_url = meta.get(tag, {}).get("url")
             was_hidden = not m.get("shown", False)
             if viewport_fix:
@@ -972,6 +1020,7 @@ def run_webview_host(args):
                 m = meta.get(tag, m)
                 _maybe_refresh_viewport(tag, win)
             meta[tag] = m
+        apply_webview_zoom(win, scale)
         print(f"[WebView Host] Ensure complete {tag}")
 
     def _hide_window(tag, pause_media=True):
@@ -1051,6 +1100,7 @@ def run_webview_host(args):
                 show=bool(show),
                 reload_on_show=bool(cmd.get("reload_on_show", False)),
                 viewport_fix=bool(cmd.get("viewport_fix", False)),
+                scale=cmd.get('scale', 1.0),
             )
             if cmd.get("resume_media", False):
                 _resume_media_for_tag(tag)

@@ -9,6 +9,7 @@ import psutil
 import tempfile
 import traceback
 import ctypes
+import math
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 # [Fix] Enable Autoplay, Disable Security, and Force GPU/WebGL for BIM/Video
@@ -118,6 +119,42 @@ def append_scene_cache_buster(url, token):
         )
     except (TypeError, ValueError):
         return raw_url
+
+
+def normalize_webview_scale(value):
+    """Keep invalid configuration away from the native WebView2 zoom setter."""
+    try:
+        scale = float(value)
+        if math.isfinite(scale) and scale > 0:
+            return min(5.0, max(0.25, scale))
+    except (TypeError, ValueError, OverflowError):
+        pass
+    return 1.0
+
+
+def _webview_command_value(cmdline, option, default=None):
+    value = default
+    for index, arg in enumerate(cmdline):
+        if arg == option and index + 1 < len(cmdline):
+            value = cmdline[index + 1]
+        elif str(arg).startswith(option + "="):
+            value = str(arg).split("=", 1)[1]
+    return value
+
+
+def standalone_webview_process_matches(name, cmdline, tag):
+    """Require the helper executable/script and exact title, never a cached PID alone."""
+    if not tag or not cmdline:
+        return False
+    name = str(name or "").lower()
+    helper = name in ("webviewplayer.exe", "webview_player.exe")
+    if name in ("python.exe", "pythonw.exe") and len(cmdline) > 1:
+        helper = os.path.basename(str(cmdline[1]).strip('"')).lower() == "webview_player.py"
+    return bool(
+        helper
+        and not any(arg == "--host" or str(arg).startswith("--host=") for arg in cmdline)
+        and _webview_command_value(cmdline, "--title") == tag
+    )
 
 
 # Hidden advanced WebView host tuning (not exposed in WebAdmin UI)
@@ -831,7 +868,8 @@ class PlayerWindow(QMainWindow):
     def _sample_visible_webview_surface(self, hwnd):
         """Classify the composited on-screen window as content, pure black, or pure white."""
         try:
-            if not hwnd or not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+            if (not hwnd or not win32gui.IsWindow(hwnd)
+                    or not win32gui.IsWindowVisible(hwnd) or win32gui.IsIconic(hwnd)):
                 return {"state": "unavailable", "samples": 0}
             left, top, right, bottom = win32gui.GetWindowRect(hwnd)
             width = int(right - left)
@@ -839,23 +877,71 @@ class PlayerWindow(QMainWindow):
             if width < 120 or height < 90:
                 return {"state": "unavailable", "samples": 0}
 
+            desktop_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+            desktop_top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
+            desktop_right = desktop_left + win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
+            desktop_bottom = desktop_top + win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
+            if (left < desktop_left or top < desktop_top
+                    or right > desktop_right or bottom > desktop_bottom):
+                return {"state": "unavailable", "samples": 0}
+
+            # A composited desktop sample is inconclusive while another window covers it.
+            for fx, fy in ((0.5, 0.5), (0.25, 0.25), (0.75, 0.25), (0.25, 0.75), (0.75, 0.75)):
+                at_point = win32gui.WindowFromPoint((left + int(width * fx), top + int(height * fy)))
+                if at_point != hwnd and not (at_point and win32gui.IsChild(hwnd, at_point)):
+                    return {"state": "unavailable", "samples": 0}
+
+            gdi = ctypes.windll.gdi32
+            pointer, integer = ctypes.c_void_p, ctypes.c_int
+            for name, result, arguments in (
+                ("CreateCompatibleDC", pointer, [pointer]),
+                ("CreateCompatibleBitmap", pointer, [pointer, integer, integer]),
+                ("SelectObject", pointer, [pointer, pointer]),
+                ("DeleteObject", integer, [pointer]),
+                ("DeleteDC", integer, [pointer]),
+                ("SetStretchBltMode", integer, [pointer, integer]),
+                ("StretchBlt", integer, [pointer, integer, integer, integer, integer,
+                                         pointer, integer, integer, integer, integer, ctypes.c_uint32]),
+                ("GdiFlush", integer, []),
+                ("GetPixel", ctypes.c_uint32, [pointer, integer, integer]),
+            ):
+                function = getattr(gdi, name)
+                function.argtypes = arguments
+                function.restype = result
+
             hdc = win32gui.GetDC(0)
             if not hdc:
                 return {"state": "unavailable", "samples": 0}
-            get_pixel = ctypes.windll.gdi32.GetPixel
-            get_pixel.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
-            get_pixel.restype = ctypes.c_uint32
+            memory_dc = bitmap = previous_bitmap = None
             black = 0
             white = 0
             valid = 0
             sums = [0, 0, 0]
             try:
                 cols, rows = 16, 9
+                memory_dc = gdi.CreateCompatibleDC(hdc)
+                if not memory_dc:
+                    raise RuntimeError("CreateCompatibleDC failed")
+                # Creating the bitmap from the screen DC preserves its color format.
+                bitmap = gdi.CreateCompatibleBitmap(hdc, cols, rows)
+                if not bitmap:
+                    raise RuntimeError("CreateCompatibleBitmap failed")
+                previous_bitmap = gdi.SelectObject(memory_dc, bitmap)
+                if not previous_bitmap or previous_bitmap == ctypes.c_void_p(-1).value:
+                    previous_bitmap = None
+                    raise RuntimeError("SelectObject failed")
+                # COLORONCOLOR retains point samples; HALFTONE would average colors.
+                if not gdi.SetStretchBltMode(memory_dc, 3):
+                    raise RuntimeError("SetStretchBltMode failed")
+                if not gdi.StretchBlt(memory_dc, 0, 0, cols, rows,
+                                      hdc, left, top, width, height, win32con.SRCCOPY):
+                    raise RuntimeError("StretchBlt failed")
+                if not gdi.GdiFlush():
+                    raise RuntimeError("GdiFlush failed")
+                # One desktop readback, then 144 inexpensive memory DC reads.
                 for row in range(rows):
-                    py = top + int(height * (row + 0.5) / rows)
                     for col in range(cols):
-                        px = left + int(width * (col + 0.5) / cols)
-                        color = int(get_pixel(ctypes.c_void_p(hdc), px, py))
+                        color = int(gdi.GetPixel(memory_dc, col, row))
                         if color == 0xFFFFFFFF:
                             continue
                         red = color & 0xFF
@@ -870,7 +956,19 @@ class PlayerWindow(QMainWindow):
                         if min(red, green, blue) >= 250:
                             white += 1
             finally:
-                win32gui.ReleaseDC(0, hdc)
+                try:
+                    if previous_bitmap:
+                        gdi.SelectObject(memory_dc, previous_bitmap)
+                finally:
+                    try:
+                        if bitmap:
+                            gdi.DeleteObject(bitmap)
+                    finally:
+                        try:
+                            if memory_dc:
+                                gdi.DeleteDC(memory_dc)
+                        finally:
+                            win32gui.ReleaseDC(0, hdc)
 
             if valid < 40:
                 return {"state": "unavailable", "samples": valid}
@@ -979,16 +1077,16 @@ class PlayerWindow(QMainWindow):
             return
 
         host_pid = getattr(self, "_webview_host_pid", None)
-        killed = False
+        killed_pids = set()
 
         try:
             pid = getattr(self, "_webview_pids", {}).get(tag)
             if pid and pid != host_pid:
                 proc = psutil.Process(pid)
-                if proc.is_running():
+                if proc.is_running() and standalone_webview_process_matches(proc.name(), proc.cmdline(), tag):
                     print(f"[WebView] Killing isolated stale tag {tag} (PID: {pid})")
                     proc.kill()
-                    killed = True
+                    killed_pids.add(pid)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
         except Exception as e:
@@ -998,23 +1096,19 @@ class PlayerWindow(QMainWindow):
             for p in psutil.process_iter(["pid", "name", "cmdline"]):
                 try:
                     pid = p.info.get("pid")
-                    if pid == host_pid:
-                        continue
-                    name = (p.info.get("name") or "").lower()
-                    if "python" not in name and "webviewplayer" not in name:
+                    if pid == host_pid or pid in killed_pids:
                         continue
                     cmdline = p.info.get("cmdline") or []
-                    cmd_str = " ".join(cmdline)
-                    if tag in cmd_str and ("webview_player.py" in cmd_str.lower() or "webviewplayer" in name):
+                    if standalone_webview_process_matches(p.info.get("name"), cmdline, tag):
                         print(f"[WebView] Killing isolated process {tag} (PID: {pid})")
                         p.kill()
-                        killed = True
+                        killed_pids.add(pid)
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
         except Exception as e:
             print(f"[WebView] Process scan kill failed for {tag}: {e}")
 
-        for attr in ("_webview_pids", "_webview_tag_hwnds", "_webview_missing_since", "_webview_tag_last_launch"):
+        for attr in ("_webview_pids", "_webview_tag_hwnds", "_webview_missing_since", "_webview_tag_last_launch", "_webview_tag_scales"):
             try:
                 mapping = getattr(self, attr, None)
                 if isinstance(mapping, dict):
@@ -1023,7 +1117,7 @@ class PlayerWindow(QMainWindow):
                 pass
 
         try:
-            match = self._webview_tag_pattern().search(str(tag))
+            match = self._webview_tag_pattern().fullmatch(str(tag))
             if match and hasattr(self, "_scene_nav_tracker"):
                 scene_idx = int(match.group(1))
                 zone_idx = int(match.group(2))
@@ -1032,11 +1126,21 @@ class PlayerWindow(QMainWindow):
         except Exception:
             pass
 
-        if killed:
+        if killed_pids:
             try:
                 self.log_debug(f"[WebView] Isolated tag stopped: {tag}")
             except Exception:
                 pass
+
+    def _restart_standalone_for_scale_change(self, tag, scale):
+        if not hasattr(self, "_webview_tag_scales"):
+            self._webview_tag_scales = {}
+        previous = self._webview_tag_scales.get(tag)
+        if previous is None or previous == scale:
+            return False
+        self._kill_webview_tag(tag)
+        # Let the old process exit before the next enforce tick opens the same profile.
+        return True
 
     def get_scheduled_restart_minutes(self):
         self._enforce_required_global_settings()
@@ -1919,7 +2023,7 @@ class PlayerWindow(QMainWindow):
                     webview.setGeometry(x, y, w, h)
                     
                     # Apply Zoom
-                    scale = float(zone.get("scale", 1.0))
+                    scale = normalize_webview_scale(zone.get("scale", 1.0))
                     webview.setZoomFactor(scale)
 
                     webview.show()
@@ -3398,6 +3502,7 @@ class PlayerWindow(QMainWindow):
                 # [WebView2 Integration] Replacing Native Edge with Embedded WebView2
                 # Instead of launching msedge.exe, we launch our helper script webview_player.py
                 target_url = content
+                webview_scale = normalize_webview_scale(zone.get("scale", 1.0)) if webview_kind == "web" else 1.0
                 if not (target_url and str(target_url).strip()):
                     print(f"[Navigation] Empty URL for WebView2 Zone {i}, skipping launch.")
                     continue
@@ -3454,6 +3559,7 @@ class PlayerWindow(QMainWindow):
                         "op": "upsert",
                         "tag": webview_tag,
                         "url": target_url,
+                        "scale": webview_scale,
                         "x": prx,
                         "y": pry,
                         "w": prw,
@@ -3474,6 +3580,8 @@ class PlayerWindow(QMainWindow):
                     required_cmdline_part_override = webview_tag
                     launch_cmd = f"[Host] {webview_tag} {target_url}"
                 else:
+                    if self._restart_standalone_for_scale_change(webview_tag, webview_scale):
+                        continue
                     # [Fix] Frozen/Source Detection for WebViewPlayer
                     launch_executable = ""
                     launch_args = ""
@@ -3519,7 +3627,7 @@ class PlayerWindow(QMainWindow):
                         browser_args_part = f" --browser-args={browser_args_clean}"
                     viewport_fix_part = " --viewport-fix" if self._webview_needs_viewport_fix(target_url) else ""
                     standalone_log_path = os.path.abspath(os.path.join(self.data_dir, f"webview_{webview_tag}.log"))
-                    launch_cmd = f'"{launch_executable}" {launch_args} --url "{target_url}" --title "{webview_tag}" --x {prx} --y {pry} --width {prw} --height {prh} --profile-path "{profile_path}" --log-path "{standalone_log_path}"{safe_part}{browser_args_part}{viewport_fix_part}'
+                    launch_cmd = f'"{launch_executable}" {launch_args} --url "{target_url}" --title "{webview_tag}" --scale {webview_scale:g} --x {prx} --y {pry} --width {prw} --height {prh} --profile-path "{profile_path}" --log-path "{standalone_log_path}"{safe_part}{browser_args_part}{viewport_fix_part}'
                     
                     # IMPORTANT: path_to_track is the actual executable running the window
                     # In frozen mode -> webview_player.exe
@@ -3542,25 +3650,27 @@ class PlayerWindow(QMainWindow):
                         # is_process_running checks by name/exe.
                         # We need to check by Title/Cmdline for python scripts.
                         is_running = False
+                        running_scale = webview_scale
                         try:
                             # psutil imported at module level
                             # [Optimization] Iterate only once and be robust against Access Denied
                             for p in psutil.process_iter(['name', 'cmdline']):
                                 try:
-                                    pname = (p.info['name'] or "").lower()
-                                    if "python" in pname or "webviewplayer" in pname:
-                                        cmdline = p.info['cmdline']
-                                        if cmdline:
-                                            # Use faster string search
-                                            if webview_tag in " ".join(cmdline):
-                                                is_running = True
-                                                break
+                                    cmdline = p.info.get('cmdline') or []
+                                    if standalone_webview_process_matches(p.info.get('name'), cmdline, webview_tag):
+                                        is_running = True
+                                        running_scale = normalize_webview_scale(_webview_command_value(cmdline, "--scale", 1.0))
+                                        break
                                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                                     pass
                         except Exception as e:
                              print(f"[Warning] psutil check failed: {e}")
                         
                         launched_or_running = is_running
+                        if is_running and running_scale != webview_scale:
+                            self._webview_tag_scales[webview_tag] = running_scale
+                            self._restart_standalone_for_scale_change(webview_tag, webview_scale)
+                            continue
                         if is_running:
                             print(f"[Navigation] Skipping WebView launch for Zone {i}, tag {webview_tag} already running.")
                         else:
@@ -3589,6 +3699,7 @@ class PlayerWindow(QMainWindow):
                         # Only mark this zone as "launched" when we confirmed running or launch succeeded.
                         # If launch failed, keep retrying in the same scene.
                         if launched_or_running:
+                            self._webview_tag_scales[webview_tag] = webview_scale
                             self._scene_nav_tracker[1].add(i)
                     
                     # Log only once
