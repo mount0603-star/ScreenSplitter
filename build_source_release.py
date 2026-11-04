@@ -172,7 +172,10 @@ def verify(dist):
             raise RuntimeError(f"Player runtime check failed: {result}")
         log(f"  Player runtime verified: {result}")
     log("Verify: unit tests with the portable interpreter")
-    tests = run([python, "-m", "unittest", "discover", "-s", "tests"], cwd=dist, env=env, check=False, capture=True)
+    # Not "-m unittest": with the zipped stdlib the main module would live inside
+    # python311.zip and pywebview refuses to import when that is the app directory.
+    tests = run([python, "-c", "import sys, unittest; result = unittest.main(module=None, argv=['unittest', 'discover', '-s', 'tests'], exit=False).result; sys.exit(0 if result.wasSuccessful() else 1)"],
+                cwd=dist, env=env, check=False, capture=True)
     tail = "\n".join((tests.stderr or tests.stdout).splitlines()[-4:])
     log("  " + tail.replace("\n", "\n  "))
     if tests.returncode != 0:
