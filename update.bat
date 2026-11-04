@@ -85,8 +85,9 @@ if defined REQ_CHANGED (
 
 if exist "%ROOT%VERSION" for /f "usebackq delims=" %%V in ("%ROOT%VERSION") do echo Updated to version %%V ^(!NEW:~0,12!^)
 echo Restarting WebServer and Players ...
-call "%ROOT%run_webserver.bat"
-start "" "%ROOT%run_player.bat"
+rem Redirect to NUL so the restarted WebServer does not inherit update.log as its stdout.
+call "%ROOT%run_webserver.bat" >nul 2>&1
+start "" "%ROOT%run_player.bat" >nul 2>&1
 echo Done.
 endlocal
 exit /b 0
