@@ -28,7 +28,7 @@ Windows 多分區看板輪播系統。四個元件：
 
 1. 新主機第一次執行 `setup_update.bat`，用瀏覽器登入 GitHub（或貼唯讀權杖）一次；憑證存在 Windows 認證管理員。
 2. 開發機改好程式、跑測試、push 到 `main`。
-3. 主機執行 `update.bat`（或開始選單「更新 ScreenSplitter」）：關閉 Player 與 WebServer、`git reset --hard origin/main`、必要時 `pip install`、重新啟動。`update.bat check` 只查詢，`update.bat force` 丟棄主機上的本地修改。
+3. 在輪播控制台頁首看到「有新版本」後按「更新主機」（4.4.1 起），或在主機執行 `update.bat`／開始選單「更新 ScreenSplitter」：關閉 Player 與 WebServer、`git reset --hard origin/main`、必要時 `pip install`、重新啟動。`update.bat check` 只查詢，`update.bat force` 丟棄主機上的本地修改。
 
 主機上不要直接改程式檔：`update.bat` 會因為有本地修改而拒絕更新，`force` 則會把那些修改丟掉。現場資料（`config.json`、`profiles\`、`web_profile\`、log）不在 git 追蹤範圍，更新不會碰它們。
 

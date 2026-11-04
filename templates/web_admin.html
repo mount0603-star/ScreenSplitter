@@ -83,6 +83,36 @@
             flex-shrink: 0;
         }
 
+        .update-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .version-badge {
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: #8fa3b0;
+            padding: 6px 10px;
+            border: 1px solid #0f3460;
+            white-space: nowrap;
+        }
+
+        .version-badge.available {
+            color: #ffb74d;
+            border-color: #ffb74d;
+        }
+
+        .version-badge.updating {
+            color: #00d2ff;
+            border-color: #00d2ff;
+        }
+
+        .version-badge.failed {
+            color: #e94560;
+            border-color: #e94560;
+        }
+
         .header-actions .btn {
             width: auto;
             margin-bottom: 0;
@@ -894,6 +924,11 @@
             </div>
         </div>
         <div class="header-actions">
+            <div class="update-box" title="這台主機目前執行的版本與線上更新狀態">
+                <span id="version-badge" class="version-badge">v—</span>
+                <button id="update-btn" class="btn btn-secondary" onclick="startHostUpdate()" style="display: none; width: auto;"
+                    title="把這台主機更新到 GitHub 上的最新版本：會關閉輪播並重新啟動">⬆ 更新主機</button>
+            </div>
             <a class="btn btn-secondary" href="{{ url_for('usage_help') }}" target="_blank" rel="noopener"
                 title="另開使用說明，保留目前編輯內容">使用說明</a>
             <button class="btn btn-primary" onclick="saveConfig()" style="width: auto;">
@@ -1076,7 +1111,116 @@
             await loadProfiles();
             await loadConfig();
             setInterval(fetchStatus, 1000);
+            refreshUpdateStatus(false);
+            setInterval(() => refreshUpdateStatus(false), 10 * 60 * 1000);
         };
+
+        // ---- Online update of this host (source-mode installation) ----
+        let updateState = { busy: false };
+
+        async function refreshUpdateStatus(refresh) {
+            try {
+                const res = await fetch(`/api/update/status${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' });
+                const state = await res.json();
+                renderUpdateStatus(state);
+                return state;
+            } catch (e) {
+                console.warn('Update status failed:', e);
+                return null;
+            }
+        }
+
+        function renderUpdateStatus(state) {
+            const badge = document.getElementById('version-badge');
+            const btn = document.getElementById('update-btn');
+            if (!badge || !btn) return;
+            const installed = state.installed || {};
+            const commit = (installed.commit || '').slice(0, 7);
+            badge.className = 'version-badge';
+            btn.style.display = 'none';
+            if (updateState.busy || state.running) {
+                badge.textContent = `v${installed.version} 更新中…`;
+                badge.classList.add('updating');
+                return;
+            }
+            if (!state.supported) {
+                badge.textContent = `v${installed.version}`;
+                badge.title = state.mode === 'packaged' ? '打包版：請用安裝檔升級' : '這個安裝沒有 git 工作目錄，無法線上更新';
+                return;
+            }
+            if (state.update_available && state.available) {
+                badge.textContent = `v${installed.version} → 有新版本 ${state.available.version}`;
+                badge.classList.add('available');
+                badge.title = `GitHub ${state.branch} 上有 ${state.available.version}（${(state.available.commit || '').slice(0, 7)}）`;
+                btn.style.display = '';
+                return;
+            }
+            badge.textContent = `v${installed.version}${commit ? ' · ' + commit : ''}${state.error ? ' · 檢查失敗' : ' · 最新'}`;
+            badge.title = state.error
+                ? `無法檢查更新：${state.error}`
+                : `已是最新（${state.checked_at ? new Date(state.checked_at * 1000).toLocaleTimeString() : ''} 檢查）`;
+        }
+
+        async function startHostUpdate() {
+            const state = await refreshUpdateStatus(true);
+            if (!state || !state.update_available) {
+                alert('目前沒有可用的更新。');
+                return;
+            }
+            const target = state.available;
+            if (!confirm(`要把這台主機更新到 ${target.version} 嗎？\n所有 Player 與 WebServer 會關閉並重新啟動，畫面中斷約 1 分鐘。`)) return;
+            let res;
+            try {
+                res = await fetch('/api/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            } catch (e) {
+                alert(`無法啟動更新：${e}`);
+                return;
+            }
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(body.error || `啟動更新失敗 (HTTP ${res.status})`);
+                return;
+            }
+            updateState.busy = true;
+            renderUpdateStatus(state);
+            waitForUpdate(target.commit || '', state.installed.commit || '');
+        }
+
+        async function waitForUpdate(targetCommit, previousCommit) {
+            const badge = document.getElementById('version-badge');
+            const started = Date.now();
+            while (Date.now() - started < 5 * 60 * 1000) {
+                await new Promise(r => setTimeout(r, 3000));
+                let version;
+                try {
+                    version = await (await fetch('/api/version', { cache: 'no-store' })).json();
+                } catch (e) {
+                    continue; // the WebServer is being restarted
+                }
+                if (version.commit && targetCommit.startsWith(version.commit)) {
+                    updateState.busy = false;
+                    badge.className = 'version-badge';
+                    badge.textContent = `v${version.version} · ${version.commit.slice(0, 7)} · 已更新`;
+                    alert(`主機已更新到 ${version.version}。`);
+                    refreshUpdateStatus(false);
+                    return;
+                }
+                if (Date.now() - started > 20000) {
+                    let state = null;
+                    try { state = await (await fetch('/api/update/status', { cache: 'no-store' })).json(); } catch (e) { }
+                    if (state && !state.running && version.commit === previousCommit) {
+                        updateState.busy = false;
+                        badge.className = 'version-badge failed';
+                        badge.textContent = `v${version.version} · 更新未完成`;
+                        alert(`更新沒有完成，請查看 update.log：\n\n${(state.log_tail || '').split('\n').slice(-12).join('\n')}`);
+                        return;
+                    }
+                }
+            }
+            updateState.busy = false;
+            badge.className = 'version-badge failed';
+            badge.textContent = '更新逾時，請到主機確認';
+        }
 
         function isControlProfile(profileId = currentProfile) {
             return (profileId || CONTROL_PROFILE_ID) === CONTROL_PROFILE_ID;

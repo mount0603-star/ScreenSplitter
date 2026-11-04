@@ -6,6 +6,8 @@ rem   update.bat check    only report the installed and available commits (chang
 rem   update.bat force    also discard local modifications to tracked files.
 rem Site data (config.json, profiles\, web_profile\, logs) is untracked and never touched.
 rem First-time setup on a new computer: run setup_update.bat once to store the GitHub token.
+rem The WebAdmin "更新主機" button runs this script through POST /api/update with the output
+rem redirected to <DATA_DIR>\update.log, so "timeout" (needs console input) is not used here.
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 set "ROOT=%~dp0"
@@ -58,11 +60,11 @@ if defined DIRTY if /i not "%~1"=="force" (
 
 echo Stopping Players through the WebServer API ...
 "%PY%" -c "import json,urllib.request; r=urllib.request.Request('http://127.0.0.1:5000/api/cmd?scope=all', data=json.dumps({'cmd':'EXIT','scope':'all'}).encode(), headers={'Content-Type':'application/json'}); print(urllib.request.urlopen(r, timeout=10).read().decode('utf-8', 'replace')[:400])" 2>nul
-timeout /t 5 /nobreak >nul
+ping -n 6 127.0.0.1 >nul
 echo Stopping any remaining Player / WebView processes from this folder ...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root = [regex]::Escape('%ROOT%'); Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match $root -and $_.CommandLine -match '(player|webview_player)\.py' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Write-Output ('Stopped PID ' + $_.ProcessId + ' ' + $_.Name) }"
 call "%ROOT%kill_webserver.bat"
-timeout /t 2 /nobreak >nul
+ping -n 3 127.0.0.1 >nul
 
 echo Updating checkout to origin/%BRANCH% ...
 "%GIT%" reset --hard origin/%BRANCH%

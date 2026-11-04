@@ -4,6 +4,7 @@ import json
 import time
 import hmac
 import html
+import shutil
 import subprocess
 import threading
 from flask import Flask, Response, redirect, render_template, jsonify, request, send_from_directory
@@ -817,6 +818,157 @@ def version_api():
         "mode": "packaged" if getattr(sys, "frozen", False) else "source",
         "root": config_manager.SHARED_ROOT,
     })
+
+
+# ---------------------------------------------------------------------------
+# Online update of a source-mode installation (4.4.1+). The WebServer only
+# compares the checkout with origin/<branch> and starts update.bat; the batch
+# file does the stop / reset / restart work and logs to <DATA_DIR>\update.log.
+# ---------------------------------------------------------------------------
+UPDATE_BRANCH = "main"
+UPDATE_STATUS_CACHE_SEC = 600.0
+_UPDATE_CACHE = {"checked_at": 0.0, "result": None}
+_UPDATE_LOCK = threading.Lock()
+
+
+def _update_paths():
+    root = config_manager.SHARED_ROOT
+    bundled_git = os.path.join(root, "git", "cmd", "git.exe")
+    git_exe = bundled_git if os.path.isfile(bundled_git) else shutil.which("git")
+    return {
+        "root": root,
+        "git_dir": os.path.join(root, ".git"),
+        "script": os.path.join(root, "update.bat"),
+        "git_exe": git_exe,
+        "log": os.path.join(DATA_DIR, "update.log"),
+    }
+
+
+def _update_supported(paths=None):
+    paths = paths or _update_paths()
+    return bool(not getattr(sys, "frozen", False) and os.path.isdir(paths["git_dir"])
+                and os.path.isfile(paths["script"]) and paths["git_exe"])
+
+
+def _run_git(args, timeout=45):
+    paths = _update_paths()
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never",
+               GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="safe.directory", GIT_CONFIG_VALUE_0="*")
+    return subprocess.run([paths["git_exe"], "-C", paths["root"], *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=timeout, env=env,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+def _update_running():
+    """True while an update.bat started from this installation is still running."""
+    if psutil is None:
+        return False
+    script = os.path.normcase(_update_paths()["script"])
+    for proc in psutil.process_iter(["name", "cmdline"]):
+        try:
+            if script in os.path.normcase(" ".join(proc.info.get("cmdline") or [])):
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        except Exception:
+            continue
+    return False
+
+
+def _fetch_remote_state():
+    """git fetch origin/<branch> and report its VERSION and commit; never prompts."""
+    try:
+        fetch = _run_git(["fetch", "--depth", "1", "origin", UPDATE_BRANCH])
+        if fetch.returncode != 0:
+            message = (fetch.stderr or fetch.stdout).strip().splitlines()
+            return {"available": None, "checked_at": time.time(),
+                    "error": (message[-1] if message else f"git fetch exit {fetch.returncode}")[:300]}
+        commit = _run_git(["rev-parse", f"origin/{UPDATE_BRANCH}"]).stdout.strip()
+        version = _run_git(["show", f"origin/{UPDATE_BRANCH}:VERSION"]).stdout.strip() or "unknown"
+        return {"available": {"version": version, "commit": commit}, "checked_at": time.time(), "error": None}
+    except Exception as exc:
+        return {"available": None, "checked_at": time.time(), "error": str(exc)[:300]}
+
+
+def _update_log_tail(lines=40):
+    path = _update_paths()["log"]
+    try:
+        with open(path, "rb") as f:
+            data = f.read()[-16384:]
+    except OSError:
+        return ""
+    for encoding in ("utf-8", "cp950", "mbcs"):
+        try:
+            text = data.decode(encoding)
+            break
+        except (UnicodeDecodeError, LookupError):
+            continue
+    else:
+        text = data.decode("utf-8", errors="replace")
+    return "\n".join(text.splitlines()[-lines:])
+
+
+def _check_for_update(refresh=False):
+    paths = _update_paths()
+    result = {
+        "supported": _update_supported(paths),
+        "mode": "packaged" if getattr(sys, "frozen", False) else "source",
+        "branch": UPDATE_BRANCH,
+        "installed": {"version": APP_VERSION, "commit": _read_git_commit()},
+        "available": None, "update_available": False, "checked_at": None, "error": None,
+        "running": _update_running(),
+        "log": paths["log"],
+    }
+    if not result["supported"]:
+        return result
+    with _UPDATE_LOCK:
+        cached = _UPDATE_CACHE["result"]
+        fresh = cached is not None and (time.time() - _UPDATE_CACHE["checked_at"]) < UPDATE_STATUS_CACHE_SEC
+        if refresh or not fresh:
+            cached = _fetch_remote_state()
+            _UPDATE_CACHE["checked_at"] = time.time()
+            _UPDATE_CACHE["result"] = cached
+        result.update(cached)
+    head = result["installed"]["commit"] or ""
+    remote = (result["available"] or {}).get("commit") or ""
+    result["update_available"] = bool(head and remote and not remote.startswith(head))
+    return result
+
+
+@app.route("/api/update/status", methods=["GET"])
+def update_status_api():
+    """API: installed vs. available version. ?refresh=1 forces a new git fetch."""
+    refresh = str(request.args.get("refresh", "")).lower() in ("1", "true", "yes")
+    payload = _check_for_update(refresh=refresh)
+    payload["status"] = "ok"
+    payload["log_tail"] = _update_log_tail()
+    return jsonify(payload)
+
+
+@app.route("/api/update", methods=["POST"])
+def start_update_api():
+    """API: run update.bat on this computer in the background (stops Players and this
+    WebServer, resets the checkout to origin/<branch>, restarts). Output -> update.log."""
+    paths = _update_paths()
+    source = _request_source_summary()
+    if not _update_supported(paths):
+        return jsonify({"error": "online update is only available for a source-mode installation with git"}), 400
+    if _update_running():
+        return jsonify({"status": "running", "log": paths["log"]}), 409
+    body = request.get_json(silent=True) or {}
+    args = [paths["script"]] + (["force"] if body.get("force") else [])
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    try:
+        with open(paths["log"], "wb") as log_file:
+            proc = subprocess.Popen(["cmd.exe", "/c", *args], cwd=paths["root"], stdin=subprocess.DEVNULL,
+                                    stdout=log_file, stderr=subprocess.STDOUT, creationflags=flags)
+    except Exception as exc:
+        _audit_log(f"[UPDATE] launch failed: {exc} {source}")
+        return jsonify({"error": str(exc)}), 500
+    with _UPDATE_LOCK:
+        _UPDATE_CACHE["result"] = None
+    _audit_log(f"[UPDATE] started pid={proc.pid} args={args[1:]} {source}")
+    return jsonify({"status": "started", "pid": proc.pid, "log": paths["log"]}), 202
 
 
 @app.route("/api/logs", methods=["GET"])

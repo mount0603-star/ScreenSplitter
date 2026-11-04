@@ -1,5 +1,13 @@
 # 版本紀錄
 
+## 4.4.1 (2026-11-04)
+
+**在輪播控制台更新主機**
+- WebAdmin 頁首顯示主機目前版本與 commit；WebServer 每 10 分鐘（及開頁時）用隨包 git 向 GitHub 查 main 分支，有新版時顯示「有新版本 x.y.z」與「更新主機」按鈕。
+- 按下後主機在背景執行 `update.bat`（輸出到 `update.log`），頁面顯示更新中、等 WebServer 重啟回來後顯示已更新；未完成時列出 update.log 末段。
+- 新 API：`GET /api/update/status`（`?refresh=1` 強制重查）、`POST /api/update`（`{"force": true}` 等同 update.bat force）；受 api_access.json 保護並記入 command_audit.log。打包版回報 supported=false。
+- `update.bat` 改用 ping 代替 timeout 等待，可在沒有主控台的情況下由 WebServer 啟動。
+
 ## 4.4.0 (2026-11-04)
 
 **原始碼模式安裝包（新的部署方式）**
