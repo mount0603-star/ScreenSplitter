@@ -39,3 +39,4 @@ packaging==26.0
 pefile==2024.8.26
 pyinstaller-hooks-contrib==2026.0
 pywin32-ctypes==0.2.3
+setuptools==65.5.0       # declared by pyinstaller-hooks-contrib; the embeddable runtime has none

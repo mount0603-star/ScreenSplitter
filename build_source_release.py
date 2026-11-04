@@ -44,9 +44,19 @@ DOWNLOADS = {
         f"https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-{MINGIT_VERSION}-64-bit.zip",
         "e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877"),
 }
-IMPORT_CHECK = ("import PySide6.QtWidgets, PySide6.QtWebEngineWidgets, PySide6.QtWebEngineCore, "
+
+# Explicit search path and NO "import site": with site enabled the embeddable interpreter
+# also adds the current user's %APPDATA%\Python\Python311\site-packages, so whatever that
+# Windows account has installed would leak into the kiosk runtime. pywin32's .pth bootstrap
+# is replaced by listing its folders here and by copying its DLLs next to python.exe.
+PTH_LINES = ["python311.zip", ".", "Lib\\site-packages", "Lib\\site-packages\\win32",
+             "Lib\\site-packages\\win32\\lib", "Lib\\site-packages\\Pythonwin"]
+IMPORT_CHECK = ("import sys; "
+                "assert 'site' not in sys.modules, 'site must stay disabled'; "
+                "assert not any('roaming' in p.lower() and 'python' in p.lower() for p in sys.path), sys.path; "
+                "import PySide6.QtWidgets, PySide6.QtWebEngineWidgets, PySide6.QtWebEngineCore, "
                 "flask, webview, psutil, win32api, win32gui, win32event, win32process, win32security, "
-                "pythonnet, clr_loader; print('imports ok')")
+                "pythonnet, clr_loader; print('imports ok, isolated from user site-packages')")
 
 
 def log(message):
@@ -77,10 +87,36 @@ def download_tools():
         log(f"Tool ready: {name} ({target.stat().st_size // 1024} KB)")
 
 
+def clone_checkout(ref):
+    if DIST.exists():
+        shutil.rmtree(DIST)
+    DIST.parent.mkdir(parents=True, exist_ok=True)
+    log(f"Cloning {REPO_URL} ({ref}) -> {DIST}")
+    run(["git", "clone", "--depth", "1", "--branch", ref, REPO_URL, DIST], cwd=ROOT)
+    commit = run(["git", "rev-parse", "HEAD"], cwd=DIST, capture=True).stdout.strip()
+    # Line endings and long paths must not make the installed checkout look modified.
+    run(["git", "config", "core.autocrlf", "true"], cwd=DIST)
+    run(["git", "config", "core.longpaths", "true"], cwd=DIST)
+    local = run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture=True).stdout.strip()
+    if local != commit:
+        log(f"NOTE: local HEAD {local[:12]} differs from the cloned {ref} ({commit[:12]}); the dist ships the pushed ref.")
+    return commit
+
+
 def build_wheels():
-    """Wheels for every pinned requirement, built once with the development venv."""
+    """Wheels for every requirement pinned by the shipped checkout, built once with the dev venv."""
     WHEELS.mkdir(parents=True, exist_ok=True)
-    run([sys.executable, "-m", "pip", "wheel", "-r", ROOT / "requirements.txt", "-w", WHEELS, "--no-deps", "-q"], cwd=ROOT)
+    run([sys.executable, "-m", "pip", "wheel", "-r", DIST / "requirements.txt", "-w", WHEELS, "--no-deps", "-q"], cwd=ROOT)
+
+
+def copy_pywin32_dlls(target):
+    """pywin32 normally finds pywintypes311.dll through its .pth bootstrap; without site the
+    DLLs must sit beside python.exe. update.bat repeats this after a pip install."""
+    source = target / "Lib" / "site-packages" / "pywin32_system32"
+    names = [dll.name for dll in source.glob("*.dll")]
+    for name in names:
+        shutil.copy2(source / name, target / name)
+    log(f"  pywin32 DLLs copied beside python.exe: {names}")
 
 
 def build_portable_python(target):
@@ -88,14 +124,15 @@ def build_portable_python(target):
     with zipfile.ZipFile(TOOLS / f"python-{PYTHON_VERSION}-embed-amd64.zip") as archive:
         archive.extractall(target)
     pth = next(target.glob("python3*._pth"))
-    pth.write_text("python311.zip\n.\nLib\\site-packages\n\n# site-packages must be enabled for pip-installed packages\nimport site\n",
-                   encoding="utf-8")
+    pth.write_text("\n".join(PTH_LINES) + "\n", encoding="utf-8")
     python = target / "python.exe"
     env = dict(os.environ, PIP_DISABLE_PIP_VERSION_CHECK="1", PYTHONDONTWRITEBYTECODE="1")
     run([python, TOOLS / "get-pip.py", "--no-warn-script-location", "-q"], cwd=target, env=env)
+    # Install exactly what the shipped checkout pins (the clone's requirements.txt).
     run([python, "-m", "pip", "install", "--no-index", "--find-links", WHEELS, "--no-warn-script-location",
-         "-q", "-r", ROOT / "requirements.txt"], cwd=target, env=env)
+         "-q", "-r", target.parent / "requirements.txt"], cwd=target, env=env)
     run([python, "-m", "pip", "check"], cwd=target, env=env)
+    copy_pywin32_dlls(target)
     for cache in target.rglob("__pycache__"):
         shutil.rmtree(cache, ignore_errors=True)
 
@@ -106,22 +143,6 @@ def unpack_mingit(target):
         archive.extractall(target)
     if not (target / "cmd" / "git.exe").is_file():
         raise RuntimeError("MinGit archive layout unexpected: cmd\\git.exe missing")
-
-
-def clone_checkout(ref):
-    if DIST.exists():
-        shutil.rmtree(DIST)
-    DIST.parent.mkdir(parents=True, exist_ok=True)
-    log(f"Cloning {REPO_URL} ({ref}) -> {DIST}")
-    run(["git", "clone", "--depth", "1", "--branch", ref, REPO_URL, DIST], cwd=ROOT)
-    commit = run(["git", "rev-parse", "HEAD"], cwd=DIST, capture=True).stdout.strip()
-    # Line endings and ownership must not make the installed checkout look modified.
-    run(["git", "config", "core.autocrlf", "true"], cwd=DIST)
-    run(["git", "config", "core.longpaths", "true"], cwd=DIST)
-    local = run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture=True).stdout.strip()
-    if local != commit:
-        log(f"NOTE: local HEAD {local[:12]} differs from the cloned {ref} ({commit[:12]}); the dist ships the pushed ref.")
-    return commit
 
 
 def verify(dist):
@@ -158,8 +179,8 @@ def main():
     os.chdir(ROOT)
 
     download_tools()
-    build_wheels()
     commit = clone_checkout(args.ref)
+    build_wheels()
     build_portable_python(DIST / "python")
     unpack_mingit(DIST / "git")
     if (ROOT / "VLC").is_dir():

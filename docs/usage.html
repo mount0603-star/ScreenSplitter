@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>ScreenSplitter 4.3.9 使用說明與交接指南</title>
+  <title>ScreenSplitter 4.4.0 使用說明與交接指南</title>
   <style>
     :root { --ink:#172c3b; --muted:#526572; --brand:#006b70; --line:#d4e0e4; --paper:#fff; --soft:#eef5f6; }
     * { box-sizing:border-box; }
@@ -97,8 +97,8 @@
 <header id="top">
   <p class="eyebrow">SCREEN SPLITTER · OPERATIONS &amp; HANDOVER</p>
   <h1>使用說明與交接指南</h1>
-  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.3.9 的 Windows 安裝版及對應原始碼。</p>
-  <div class="meta"><span>文件版本：4.3.9</span><span>修訂日期：2026-11-04</span><span>可離線閱讀／列印</span></div>
+  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.4.0 的 Windows 安裝版及對應原始碼。</p>
+  <div class="meta"><span>文件版本：4.4.0</span><span>修訂日期：2026-11-04</span><span>可離線閱讀／列印</span></div>
 </header>
 <div class="layout">
 <nav aria-label="使用說明目錄">
@@ -140,10 +140,10 @@
   <div class="note"><p><strong>Web 開得起來，不代表 Player 已啟動。</strong>兩者是不同程序；網頁編輯器與看板網站也不是同一個服務。</p></div>
   <div class="table-wrap" tabindex="0" role="region" aria-label="日常啟停方式">
     <table><thead><tr><th scope="col">要做的事</th><th scope="col">操作與作用</th></tr></thead><tbody>
-      <tr><td>啟動目前畫面</td><td>WebAdmin 選 Profile → ▶。也可在播放電腦執行 <code>Player\Player.exe --profile default</code>，副畫面改成 <code>--profile screen2</code>。</td></tr>
+      <tr><td>啟動目前畫面</td><td>WebAdmin 選 Profile → ▶。也可在播放電腦執行 <code>Player\Player.exe --profile default（4.4.0 原始碼模式：<code>run_player.bat default</code>）</code>，副畫面改成 <code>--profile screen2</code>。</td></tr>
       <tr><td>關閉一個 Player</td><td>WebAdmin 選正確 Profile →「關閉」。會先要求正常退出，再清理該 Profile 遺留的執行程序；等幾秒確認完成。</td></tr>
       <tr><td>關閉所有 Player</td><td>「全部關閉」作用於 WebServer 列出的全部 Profile，不會關掉 WebServer。</td></tr>
-      <tr><td>停止 WebServer</td><td>使用安裝根目錄 <code>kill_webserver.bat</code>；其作用是結束本機同名 WebServer 程序樹，並非逐 Profile 控制。停止後無法使用 WebAdmin/API；必要時先關閉 Players。</td></tr>
+      <tr><td>停止 WebServer</td><td>使用安裝根目錄 <code>kill_webserver.bat</code>；其作用是結束從此安裝目錄啟動的 WebServer（原始碼模式的 pythonw.exe web_server.py，或舊版的 WebServer.exe 程序樹），並非逐 Profile 控制。停止後無法使用 WebAdmin/API；必要時先關閉 Players。</td></tr>
       <tr><td>關閉管理介面</td><td>關閉瀏覽器分頁或桌面 Admin 視窗不等於關閉 Player；播放會繼續。</td></tr>
       <tr><td>開啟本說明</td><td>WebAdmin 頁首「使用說明」會另開分頁；桌面 Admin 的「使用說明」或 <kbd>F1</kbd> 直接開本機文件。也可使用開始選單「ScreenSplitter → 使用說明」，或雙擊 <code>docs\usage.html</code>。</td></tr>
     </tbody></table>
@@ -167,7 +167,7 @@
       <tr><td>分區 Zone</td><td>場景內一塊顯示區域，包含類型、內容、位置、尺寸及相關選項。Zone 編號從 0 開始。</td></tr>
     </tbody></table>
   </div>
-  <p>執行環境需要 Windows 圖形桌面、相容的顯示驅動及 WebView2 Runtime。網頁需要的 DNS、內網路由、外部圖磚連線或帳號權限，並不會由安裝 ScreenSplitter 自動提供。WebAdmin/API 預設沒有登入驗證，應放在既有的受控內部網路；需要限制來源時，可在資料目錄建立 api_access.json（見第 15 節），不影響播放；它也不是 Windows 服務或開機前的登入替代方案。</p>
+  <p>執行環境需要 Windows 圖形桌面、相容的顯示驅動及 WebView2 Runtime。網頁需要的 DNS、內網路由、外部圖磚連線或帳號權限，並不會由安裝 ScreenSplitter 自動提供。WebAdmin/API 預設沒有登入驗證，應放在既有的受控內部網路；需要限制來源時，可在資料目錄建立 api_access.json（見第 15 節），不影響播放；它也不是 Windows 服務或開機前的登入替代方案。4.4.0 起的原始碼模式安裝包裡，這三個程式都是以安裝目錄 <code>python\pythonw.exe</code> 執行的 Python 腳本（<code>player.py</code>、<code>webview_player.py</code>、<code>web_server.py</code>），工作管理員看到的是 pythonw.exe，不再有 Player.exe、WebServer.exe、AdminTool.exe；行為、資料位置與 LOG 檔名不變。</p>
 </section>
 
 <section id="profiles" aria-labelledby="profiles-title">
@@ -366,17 +366,26 @@
   <ol>
     <li>記錄目前版本、安裝位置、Windows 執行帳號、實際 DATA_DIR 及 Profile 清單；依下一節備份。需要保留事故證據時先匯出 LOG。</li>
     <li>在 WebAdmin「全部關閉」Players，確認內容視窗與對應程序結束，再關閉 Admin、停止 WebServer。</li>
-    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.3.9.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
+    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.4.0.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
     <li>安裝包部署程式、資源、啟動 BAT 與 <code>docs\usage.html</code>；不把開發電腦的現場 config、profiles 或網站資料當成預設內容發送。</li>
     <li>啟動 WebServer；核對原 Profile、螢幕綁定與內容仍在，再啟動 Players。依第 18 節實際驗收兩台螢幕與每種內容。</li>
   </ol>
   <p>安裝程式採目前使用者權限，實際目錄以安裝精靈及捷徑為準，可能位於使用者的 LocalAppData\Programs；不要假定每台都在 Program Files 或與另一台使用者路徑相同。若安裝後由精靈啟動 WebServer，只有啟用 Web 自啟的 Profile 會被該入口自動啟動。</p>
+  <h3>4.4.0 起：原始碼模式安裝包與 update.bat</h3>
+  <p><code>ScreenSplitter_Setup_4.4.0.exe</code> 安裝的不再是 PyInstaller 的 EXE，而是一份 git 工作目錄（程式原始碼）、<code>python\</code>（可攜式 Python 3.11.9 與釘死版本的套件）、<code>git\</code>（MinGit），以及有隨包時的 <code>VLC\</code>。安裝到原位置時會移除舊的 <code>Player\_internal</code>、<code>Player\WebViewPlayer</code>、<code>Player\VLC</code>、<code>Player\Player.exe</code>、<code>AdminTool\</code>、<code>WebServer\</code>；<code>config.json</code>、<code>profiles\</code>、<code>web_profile\</code>、LOG 與自訂的 <code>Player\music</code> 都留在原處。程式只找安裝根的 <code>music\</code>，自訂音檔請搬過去。桌面與開始選單捷徑名稱相同，另多一個「更新 ScreenSplitter」；開機自啟仍是 <code>run_player.bat</code>。</p>
+  <ol>
+    <li>新主機或第一次改用原始碼模式：執行安裝目錄的 <code>setup_update.bat</code>，輸入 GitHub 帳號與一個只有 Contents 讀取權限的 fine-grained token。它存在該 Windows 使用者的 <code>%USERPROFILE%\.git-credentials</code>，視同密碼保管；之後不再詢問。</li>
+    <li>之後每次更新：開發機改好程式、跑測試、push 到 GitHub 的 main；主機執行 <code>update.bat</code>（或開始選單「更新 ScreenSplitter」）。它依序：取得 origin/main → 比對 commit，沒有新版就結束 → 透過 API 關閉全部 Player，再結束此安裝目錄殘留的 Player／WebView／WebServer 程序 → <code>git reset --hard origin/main</code> → 若 <code>requirements.txt</code> 有變更則 <code>pip install</code>（需要能連 PyPI）→ 重新啟動 WebServer 與 Players。</li>
+    <li><code>update.bat check</code> 只回報已安裝與可用的 commit，不停止任何程式。主機上的程式檔若被手動改過，<code>update.bat</code> 會拒絕並列出檔案；確定不要那些修改時用 <code>update.bat force</code>。現場資料不在 git 追蹤範圍，兩種方式都不會動它。</li>
+    <li>退回舊版：重新安裝該版的安裝檔。4.4.0 之後的版本也可在安裝目錄執行 <code>git\cmd\git.exe fetch --depth 1 origin tag v4.4.0</code> 再 <code>git\cmd\git.exe checkout v4.4.0</code> 後重啟；下一次 update.bat 會再回到最新版。</li>
+  </ol>
+  <p>原始碼模式的更新只需要主機能連到 github.com（443）；安裝檔仍適用於不能上網的機器。開發機用 <code>venv\</code>、主機用 <code>python\</code>，啟動 BAT 會自動判斷，兩邊是同一組腳本。</p>
   <h3>資料保留與卸載邊界</h3>
   <p>正常原位置升級不應覆蓋使用者 config 或網站資料。安裝清理僅針對 4.3.5 曾誤帶的特定 ICU DLL；不是清空設定。仍需先備份，因為選錯安裝位置、執行帳號改變或手動刪資料夾會造成另一種結果。</p>
   <p>卸載會移除安裝程式登記的程式檔與捷徑；使用期間產生的設定／LOG／網站資料，以及位於 %APPDATA% 的資料不應被視為一定已刪除或一定會保留。卸載不是備份，也不是網站帳號登出的替代方式。卸載後如要移除殘留資料，先確認實際 DATA_DIR 與備份，交由維護者針對明確路徑處理。</p>
   <h3>4.3.5 的 Qt DLL 匯入問題</h3>
   <p>歷史案例為 <code>ImportError: DLL load failed while importing QtWidgets: 找不到指定的程序</code>。當時打包環境把其他工具的 ICU DLL 帶進 Qt 程式，遮蔽 Windows 所需版本。4.3.6 起採乾淨建置 PATH、拒收意外 ICU 並執行真實 Player 啟動驗證，後續版本包含此修正。</p>
-  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.3.9，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
+  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.4.0，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
 </section>
 
 <section id="backup" aria-labelledby="backup-title">
@@ -405,7 +414,7 @@
   <p>先記錄<strong>發生時間、Profile、場景／Zone、實際看到的症狀、最近變更</strong>，並保存當次 LOG。先分清「管理服務沒開」「Player 沒啟動」「視窗位置錯」「網頁內容局部失敗」，再選處理方法。</p>
   <div class="table-wrap" tabindex="0" role="region" aria-label="常見問題與檢查順序">
     <table><thead><tr><th scope="col">症狀</th><th scope="col">先查什麼／怎麼處理</th></tr></thead><tbody>
-      <tr><td>WebAdmin 打不開</td><td>在播放電腦測 <code>127.0.0.1:5000</code>，確認 WebServer 程序與 web_server.log；本機通而遠端不通再查 IP、路由、防火牆、5000 是否被其他程式占用。不要把外部看板網站的故障當成 WebAdmin 故障。</td></tr>
+      <tr><td>WebAdmin 打不開</td><td>在播放電腦測 <code>127.0.0.1:5000</code>，確認 WebServer 程序（原始碼模式是 pythonw.exe，命令列含 web_server.py）與 web_server.log；本機通而遠端不通再查 IP、路由、防火牆、5000 是否被其他程式占用。不要把外部看板網站的故障當成 WebAdmin 故障。</td></tr>
       <tr><td>Web 能開，Player 不見</td><td>選對 Profile，確認已按 ▶；Web 自啟可能關閉。查指定螢幕是否缺席、stderr/startup_crash/restart.log，以及 Player.exe 是否來自正確安裝目錄。</td></tr>
       <tr><td>顯示離線但螢幕還在動</td><td>比對 status_age、實際場景變化與 WebView 狀態。心跳寫入或主執行緒可能延遲；不要僅憑一次離線就判斷程序已死或反覆啟動。</td></tr>
       <tr><td>輪播停在一頁</td><td>先查 duration 是否 0、paused 是否 true，以及目標螢幕是否進入等待。若都不是，再比對目前 scene_idx 的時間序列、例外與外部程式是否卡住。</td></tr>
@@ -451,12 +460,15 @@ http://127.0.0.1:5000/api/diagnostics?scope=all
 http://127.0.0.1:5000/api/logs?profile=default
 http://127.0.0.1:5000/api/logs/player_debug.log?profile=default&amp;lines=400
 http://127.0.0.1:5000/api/log-search?profile=default&amp;file=player_debug.log&amp;q=Screen%20Return
-http://127.0.0.1:5000/api/processes?scope=all</code></pre>
+http://127.0.0.1:5000/api/processes?scope=all
+http://127.0.0.1:5000/api/version</code></pre>
   <p>在播放電腦 PowerShell 也可只讀取得狀態：</p>
   <pre><code>$base = 'http://127.0.0.1:5000'
 Invoke-RestMethod "$base/api/status?scope=all"
 Invoke-RestMethod "$base/api/profiles"
-Invoke-RestMethod "$base/api/diagnostics?scope=all"</code></pre>
+Invoke-RestMethod "$base/api/diagnostics?scope=all"
+Invoke-RestMethod "$base/api/version"</code></pre>
+  <p>4.4.0 起 <code>/api/version</code> 回報 <code>VERSION</code> 檔的版本、原始碼 commit（原始碼模式）與執行模式 packaged／source；<code>/api/profiles</code> 與 <code>/api/diagnostics</code> 也附上版本。交接或回報問題時先取這個值，不要只看安裝檔檔名。</p>
   <p class="small">完整設定的 GET /api/config 會呼叫 ensure_profile；對不存在的 Profile 可能建立其資料。因此純診斷先用上述狀態、Profile 及 LOG 入口，避免拿未知名稱反覆查設定。POST /api/cmd、/api/run_player、/api/config、/api/profiles 都是有操作效果的介面，不屬於這組唯讀範例。</p>
   <h3>限制遠端存取（選用，4.3.9 起）</h3>
   <p>預設 WebAdmin/API 不驗證來源，與舊版相同。需要限制時，在實際 DATA_DIR（與 default 的 config.json 同一層，可由 /api/profiles 的 data_dir 確認）建立 <code>api_access.json</code>；不需重新啟動 WebServer，也不影響 Player 與播放：</p>
@@ -530,6 +542,21 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
   web_profile\...
   profiles\screen2\config.json
   profiles\screen2\web_profile\...</code></pre>
+  <p>4.4.0 起的原始碼模式安裝包結構：</p>
+  <pre><code>&lt;安裝根&gt;\
+  .git\                        取得更新用的 git 中繼資料（只含最新 commit）
+  python\pythonw.exe           可攜式 Python；套件在 python\Lib\site-packages
+  python\ScreenSplitter_build.json   建置時的 commit、版本與測試結果
+  git\cmd\git.exe             MinGit，供 update.bat 使用
+  VLC\...                      （有隨包 VLC 時）
+  player.py  webview_player.py  web_server.py  admin.py  config_manager.py
+  templates\  static\  docs\usage.html  music\  tests\
+  VERSION  requirements.txt  CHANGELOG.md  README.md
+  run_player.bat  run_webserver.bat  run_admin.bat  kill_webserver.bat
+  update.bat  setup_update.bat
+
+&lt;DATA_DIR&gt;\                  同上；安裝根可寫時就是安裝根</code></pre>
+  <p>原始碼模式下 <code>python\</code>、<code>git\</code>、<code>VLC\</code> 與全部現場資料都在 <code>.gitignore</code> 內，因此安裝目錄的 <code>git status</code> 應該是乾淨的；update.bat 就是以此判斷主機上有沒有人改過程式檔。</p>
   <p>PyInstaller onedir 的 EXE、_internal 與附屬資源是一組，不應抽出單一 EXE 當作完整發行包。原始碼根的舊 build.bat、舊 spec、歷史「架構／工程開發日誌」等只作專案背景；它們可能記載已淘汰流程，不是此版操作或交付的權威來源，也不保證隨安裝包提供。</p>
   <h3>IPC 與更新流程</h3>
   <p>WebAdmin 儲存經 WebServer → config_manager 寫入該 Profile config；命令則由 WebServer 寫該 Profile 的 <code>ipc_cmd.txt</code>。Player 定期讀取並刪除命令檔，寫出 <code>ipc_status.json</code>。命令檔是單一槽位，不是可靠累積佇列；不要高速連送並假定每一筆都必定依序處理。</p>
@@ -561,6 +588,10 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
   <p>Inno Setup 路徑依實際安裝調整。build_release 會先清理專案的生成用 <code>build</code> 目錄，再建立 AdminTool、Player、WebServer、WebViewPlayer 四個 onedir 元件，整合成 <code>build\ScreenSplitter_Dist</code>；需要保留的前一版產物先另存。安裝檔輸出為 <code>build\ScreenSplitter_Setup.exe</code>。</p>
   <p>建置腳本會限制 PATH，只保留建置 Python 與 Windows 必要位置，避免其他工具提供同名 Qt 依賴。整合時若 Player/AdminTool 意外帶入 <code>_internal\icuuc.dll</code>，建置會失敗；不可刪掉檢查、再宣稱打包成功。</p>
   <p>腳本也會對真正要交付的 Player.exe 執行 offscreen QWidget 啟動檢查，輸出載入的 Qt／ICU 資訊。這證明封裝程式能載入 Qt，不代表所有外部網站、螢幕喚醒與現場帳號已驗收。</p>
+  <h3>建立原始碼模式安裝檔（4.4.0 起）</h3>
+  <pre><code>Set-Location -LiteralPath 'D:\ScreenSplitter'
+&amp; '.\venv\Scripts\python.exe' '.\build_source_release.py' --ref main --installer</code></pre>
+  <p>先 commit 並 push，因為腳本是從 GitHub 淺層複製 <code>--ref</code> 指定的分支或標籤，不是複製工作目錄。它把 embeddable Python、get-pip 與 MinGit 下載到 <code>.cache\tools</code>（SHA-256 固定在腳本內），用 venv 把 requirements.txt 的全部套件做成 wheel 放在 <code>.cache\wheels</code>，再離線裝進 <code>python\</code>；接著用可攜式直譯器做匯入檢查、Player 離螢幕 Qt 檢查、全部單元測試與 <code>git status</code> 乾淨檢查，任一失敗就停止。輸出為 <code>build\ScreenSplitter_Source_Dist</code> 與 <code>build\ScreenSplitter_Setup_Source.exe</code>；發版核對同下節，另外比對 <code>python\ScreenSplitter_build.json</code> 的 commit 與 GitHub 上的標籤。版本號只改 <code>VERSION</code> 檔，兩個 Inno 腳本與 API 都讀它。</p>
   <h3>發版核對</h3>
   <ol>
     <li>確認 setup_script.iss 版本、手冊版本及交付檔名一致；確認 docs/usage.html 真的進入發行目錄與安裝包。</li>
@@ -572,7 +603,7 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
   <pre><code>Get-Item -LiteralPath '.\build\ScreenSplitter_Setup.exe' |
   Select-Object -ExpandProperty VersionInfo
 Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</code></pre>
-  <p class="small">舊版的回歸測試、實際 Qt 與 WebView smoke 證據不能自動代替 4.3.9 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
+  <p class="small">舊版的回歸測試、實際 Qt 與 WebView smoke 證據不能自動代替 4.4.0 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
 </section>
 
 <section id="handover" aria-labelledby="handover-title">
@@ -599,6 +630,6 @@ Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</
 </section>
 </main>
 </div>
-<footer>ScreenSplitter 4.3.9 使用說明與交接指南 · 2026-11-04。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
+<footer>ScreenSplitter 4.4.0 使用說明與交接指南 · 2026-11-04。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
 </body>
 </html>

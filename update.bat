@@ -77,6 +77,8 @@ if defined REQ_CHANGED (
     echo requirements.txt changed; installing packages ^(needs internet^) ...
     "%PY%" -m pip install --no-warn-script-location -r "%ROOT%requirements.txt"
     if errorlevel 1 echo WARNING: pip install failed; the programs may not start until it succeeds.
+    rem The portable runtime loads pywin32's DLLs from beside python.exe (no site.py bootstrap).
+    if exist "%ROOT%python\Lib\site-packages\pywin32_system32\*.dll" copy /y "%ROOT%python\Lib\site-packages\pywin32_system32\*.dll" "%ROOT%python\" >nul
 )
 
 if exist "%ROOT%VERSION" for /f "usebackq delims=" %%V in ("%ROOT%VERSION") do echo Updated to version %%V ^(!NEW:~0,12!^)

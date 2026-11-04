@@ -1,5 +1,20 @@
 # 版本紀錄
 
+## 4.4.0 (2026-11-04)
+
+**原始碼模式安裝包（新的部署方式）**
+- 安裝包 `ScreenSplitter_Setup_Source` 內含一份 git 工作目錄、可攜式 Python 3.11.9（已裝好釘死版本的套件）與 MinGit；程式直接以原始碼執行，不再是 PyInstaller 打包的 EXE。安裝到原位置即可，設定、Profile、網站資料不受影響；舊的 `Player\`、`AdminTool\`、`WebServer\` 程式資料夾會被移除（自訂的 `Player\music` 會留下，請搬到 `music\`）。
+- 之後的更新改用開始選單「更新 ScreenSplitter」或安裝目錄的 `update.bat`：取得 GitHub 上的最新版、關閉 Player 與 WebServer、更新程式、必要時安裝套件、重新啟動。`update.bat check` 只查詢不更動；`update.bat force` 丟棄主機上對程式檔的本地修改。新主機第一次先跑 `setup_update.bat` 存一次唯讀權杖。
+- `run_webserver.bat`、`run_player.bat`、`run_admin.bat`、`kill_webserver.bat` 改為優先使用安裝目錄的 `python\`，沒有時才用開發用 `venv\`，開發與主機用同一組腳本。
+- WebServer 新增 `--production` 參數（或環境變數 `SCREENSPLITTER_PRODUCTION=1`）：原始碼模式也會寫 `web_server.log`、自動拉起已啟用 Web 自啟的 Player、不開重載器。
+- WebServer 的程序辨識、關閉清理與 `/api/processes` 現在也認得 `pythonw.exe player.py`／`webview_player.py`；單一 Profile 的程序快照不再列出以其他 `--profile` 啟動的 Player。
+- 新增 `/api/version`：回報 `VERSION` 檔、原始碼 commit 與執行模式；`/api/profiles`、`/api/diagnostics` 也附上版本。
+- 版本號改由 `VERSION` 檔統一提供（兩個 Inno 腳本與 API 都讀它）。
+
+**建置**
+- 新增 `build_source_release.py`：從 GitHub 淺層複製指定的分支或標籤，組裝可攜式 Python（離線 wheel 快取）、MinGit、VLC，並用可攜式直譯器驗證匯入、Player 離螢幕 Qt 檢查與全部單元測試；`--installer` 直接編譯 `setup_source.iss`。
+- PyInstaller 流程（`build_release.py` + `setup_script.iss`）保留，供不便安裝原始碼模式的機器使用。
+
 ## 4.3.9 (2026-11-04)
 
 **網頁縮放**

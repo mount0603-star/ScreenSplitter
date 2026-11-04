@@ -22,6 +22,16 @@ Windows 多分區看板輪播系統。四個元件：
 
 遠端存取限制（選用）：在資料目錄建立 `api_access.json`，詳見手冊第 15 節。
 
+## 輪播主機：原始碼模式安裝與更新（4.4.0 起）
+
+安裝包 `ScreenSplitter_Setup_Source` 把這個 repo 的工作目錄、可攜式 Python（`python\`）與 MinGit（`git\`）一起裝到主機，程式直接以原始碼執行。之後的更新流程：
+
+1. 新主機第一次執行 `setup_update.bat`，輸入 GitHub 帳號與唯讀權杖一次。
+2. 開發機改好程式、跑測試、push 到 `main`。
+3. 主機執行 `update.bat`（或開始選單「更新 ScreenSplitter」）：關閉 Player 與 WebServer、`git reset --hard origin/main`、必要時 `pip install`、重新啟動。`update.bat check` 只查詢，`update.bat force` 丟棄主機上的本地修改。
+
+主機上不要直接改程式檔：`update.bat` 會因為有本地修改而拒絕更新，`force` 則會把那些修改丟掉。現場資料（`config.json`、`profiles\`、`web_profile\`、log）不在 git 追蹤範圍，更新不會碰它們。
+
 ## 測試與打包
 
 ```bat
