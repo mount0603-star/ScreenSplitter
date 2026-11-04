@@ -50,8 +50,12 @@ DOWNLOADS = {
 # also adds the current user's %APPDATA%\Python\Python311\site-packages, so whatever that
 # Windows account has installed would leak into the kiosk runtime. pywin32's .pth bootstrap
 # is replaced by listing its folders here and by copying its DLLs next to python.exe.
+# A ._pth file also puts the interpreter in isolated mode, which does not add the script's
+# own folder to sys.path, so "python\python.exe player.py" could not import config_manager.
+# ".." (the checkout root, one level above python\) makes the application modules
+# importable from any working directory; it comes last so installed packages win.
 PTH_LINES = ["python311.zip", ".", "Lib\\site-packages", "Lib\\site-packages\\win32",
-             "Lib\\site-packages\\win32\\lib", "Lib\\site-packages\\Pythonwin"]
+             "Lib\\site-packages\\win32\\lib", "Lib\\site-packages\\Pythonwin", ".."]
 IMPORT_CHECK = ("import sys; "
                 "assert 'site' not in sys.modules, 'site must stay disabled'; "
                 "assert not any('roaming' in p.lower() and 'python' in p.lower() for p in sys.path), sys.path; "
