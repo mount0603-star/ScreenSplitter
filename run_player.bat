@@ -16,8 +16,9 @@ if not exist "%PYW%" (
 )
 if not "%~1"=="" goto run_profile
 
-rem Let Windows restore the complete display topology after sign-in.
-timeout /t 20 /nobreak >nul
+rem Let Windows restore the complete display topology after sign-in. (ping, not timeout:
+rem timeout exits at once when there is no console, e.g. when update.bat started us.)
+ping -n 21 127.0.0.1 >nul
 start "ScreenSplitter Player default" /min "%ComSpec%" /d /c call "%~f0" default
 for /d %%D in ("%~dp0profiles\*") do (
     if exist "%%~fD\config.json" start "ScreenSplitter Player %%~nxD" /min "%ComSpec%" /d /c call "%~f0" "%%~nxD"
@@ -28,5 +29,5 @@ exit /b 0
 "%PYW%" "%~dp0player.py" --profile "%~1"
 set "PLAYER_EXIT=%ERRORLEVEL%"
 if "%PLAYER_EXIT%"=="0" exit /b 0
-timeout /t 5 /nobreak >nul
+ping -n 6 127.0.0.1 >nul
 goto run_profile
