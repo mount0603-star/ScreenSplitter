@@ -111,7 +111,8 @@ def _run_on_native_ui(win, callback):
 def normalize_webview_scale(value):
     try:
         value = float(value)
-        return max(0.25, min(5.0, value)) if math.isfinite(value) and value > 0 else 1.0
+        # Same four-decimal rounding as player.normalize_webview_scale.
+        return round(max(0.25, min(5.0, value)), 4) if math.isfinite(value) and value > 0 else 1.0
     except (TypeError, ValueError, OverflowError):
         return 1.0
 

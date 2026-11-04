@@ -458,7 +458,7 @@ Invoke-RestMethod "$base/api/status?scope=all"
 Invoke-RestMethod "$base/api/profiles"
 Invoke-RestMethod "$base/api/diagnostics?scope=all"</code></pre>
   <p class="small">完整設定的 GET /api/config 會呼叫 ensure_profile；對不存在的 Profile 可能建立其資料。因此純診斷先用上述狀態、Profile 及 LOG 入口，避免拿未知名稱反覆查設定。POST /api/cmd、/api/run_player、/api/config、/api/profiles 都是有操作效果的介面，不屬於這組唯讀範例。</p>
-  <h3>限制遠端存取（選用，4.3.8 起）</h3>
+  <h3>限制遠端存取（選用，4.3.9 起）</h3>
   <p>預設 WebAdmin/API 不驗證來源，與舊版相同。需要限制時，在實際 DATA_DIR（與 default 的 config.json 同一層，可由 /api/profiles 的 data_dir 確認）建立 <code>api_access.json</code>；不需重新啟動 WebServer，也不影響 Player 與播放：</p>
   <pre><code>{
   "token": "自行產生一段夠長的隨機字串",

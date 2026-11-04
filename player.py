@@ -126,7 +126,10 @@ def normalize_webview_scale(value):
     try:
         scale = float(value)
         if math.isfinite(scale) and scale > 0:
-            return min(5.0, max(0.25, scale))
+            # Four decimals round-trip exactly through the "--scale {value:g}" command
+            # line; more digits would make the running process look misconfigured
+            # and the standalone window would be rebuilt on every enforce tick.
+            return round(min(5.0, max(0.25, scale)), 4)
     except (TypeError, ValueError, OverflowError):
         pass
     return 1.0
