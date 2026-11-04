@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -87,9 +88,17 @@ def download_tools():
         log(f"Tool ready: {name} ({target.stat().st_size // 1024} KB)")
 
 
+def _remove_tree(path):
+    """rmtree that also removes read-only files (git marks its pack files read-only)."""
+    def force_writable(func, failed_path, _exc_info):
+        os.chmod(failed_path, stat.S_IWRITE)
+        func(failed_path)
+    shutil.rmtree(path, onerror=force_writable)
+
+
 def clone_checkout(ref):
     if DIST.exists():
-        shutil.rmtree(DIST)
+        _remove_tree(DIST)
     DIST.parent.mkdir(parents=True, exist_ok=True)
     log(f"Cloning {REPO_URL} ({ref}) -> {DIST}")
     run(["git", "clone", "--depth", "1", "--branch", ref, REPO_URL, DIST], cwd=ROOT)
