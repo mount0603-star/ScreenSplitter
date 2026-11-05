@@ -1,23 +1,27 @@
 @echo off
-rem ScreenSplitter source-mode updater.
-rem   update.bat          fetch origin/main; if newer: stop Players and WebServer, reset the
-rem                       checkout to origin/main, install changed requirements, restart.
-rem   update.bat check    only report the installed and available commits (changes nothing).
-rem   update.bat force    also discard local modifications to tracked files.
-rem Site data (config.json, profiles\, web_profile\, logs) is untracked and never touched.
-rem The repository is public, so no credentials are needed; only if it is made private again
-rem must setup_update.bat be run once on a new computer to store a GitHub token.
-rem The WebAdmin "更新主機" button runs this script through POST /api/update with the output
-rem redirected to <DATA_DIR>\update.log, so "timeout" (needs console input) is not used here.
+rem ScreenSplitter source-mode updater. Site data (config.json, profiles\, logs) is untouched.
+rem   update.bat         fetch origin/main; if newer: stop Players/WebServer, reset, restart
+rem   update.bat check   only report commits; force: also drop local edits
+rem Public repo: no credentials needed (setup_update.bat only if made private again).
+rem Run by POST /api/update with stdout in update.log (no console: no timeout). cmd
+rem reads batch files by byte offset, so this file copies itself to %TEMP% and runs the copy.
 setlocal EnableDelayedExpansion
-cd /d "%~dp0"
-set "ROOT=%~dp0"
+if not defined SS_UPDATE_ROOT (
+    set "SS_UPDATE_ROOT=%~dp0"
+    if not defined TEMP set "TEMP=%~dp0"
+    copy /y "%~f0" "!TEMP!\ScreenSplitter_update.bat" >nul
+    if errorlevel 1 (echo Cannot copy update.bat to !TEMP! & exit /b 5)
+    call "!TEMP!\ScreenSplitter_update.bat" %*
+    exit /b !ERRORLEVEL!
+)
+set "ROOT=%SS_UPDATE_ROOT%"
+cd /d "%ROOT%"
 set "BRANCH=main"
 set "GIT=%ROOT%git\cmd\git.exe"
 if not exist "%GIT%" set "GIT=git"
 set "PY=%ROOT%python\python.exe"
 if not exist "%PY%" set "PY=%ROOT%venv\Scripts\python.exe"
-rem Accept the checkout even when another Windows account owns the folder.
+rem safe.directory: accept a checkout owned by another Windows account.
 set "GIT_CONFIG_COUNT=1"
 set "GIT_CONFIG_KEY_0=safe.directory"
 set "GIT_CONFIG_VALUE_0=*"

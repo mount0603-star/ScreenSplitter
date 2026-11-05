@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>ScreenSplitter 4.4.2 使用說明與交接指南</title>
+  <title>ScreenSplitter 4.4.3 使用說明與交接指南</title>
   <style>
     :root { --ink:#172c3b; --muted:#526572; --brand:#006b70; --line:#d4e0e4; --paper:#fff; --soft:#eef5f6; }
     * { box-sizing:border-box; }
@@ -97,8 +97,8 @@
 <header id="top">
   <p class="eyebrow">SCREEN SPLITTER · OPERATIONS &amp; HANDOVER</p>
   <h1>使用說明與交接指南</h1>
-  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.4.2 的 Windows 安裝版及對應原始碼。</p>
-  <div class="meta"><span>文件版本：4.4.2</span><span>修訂日期：2026-11-05</span><span>可離線閱讀／列印</span></div>
+  <p>從設定播放內容、雙螢幕操作，到備份、故障排查與版本交付。適用於 ScreenSplitter 4.4.3 的 Windows 安裝版及對應原始碼。</p>
+  <div class="meta"><span>文件版本：4.4.3</span><span>修訂日期：2026-11-05</span><span>可離線閱讀／列印</span></div>
 </header>
 <div class="layout">
 <nav aria-label="使用說明目錄">
@@ -367,7 +367,7 @@
   <ol>
     <li>記錄目前版本、安裝位置、Windows 執行帳號、實際 DATA_DIR 及 Profile 清單；依下一節備份。需要保留事故證據時先匯出 LOG。</li>
     <li>在 WebAdmin「全部關閉」Players，確認內容視窗與對應程序結束，再關閉 Admin、停止 WebServer。</li>
-    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.4.2.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
+    <li>使用已確認版本的 <code>ScreenSplitter_Setup_4.4.3.exe</code>，或交付時同內容的 <code>ScreenSplitter_Setup.exe</code>，安裝到<strong>原有安裝位置</strong>。不要只覆蓋一個 Player.exe 而混用其他版本的 _internal 與 WebViewPlayer。</li>
     <li>安裝包部署程式、資源、啟動 BAT 與 <code>docs\usage.html</code>；不把開發電腦的現場 config、profiles 或網站資料當成預設內容發送。</li>
     <li>啟動 WebServer；核對原 Profile、螢幕綁定與內容仍在，再啟動 Players。依第 18 節實際驗收兩台螢幕與每種內容。</li>
   </ol>
@@ -377,6 +377,7 @@
   <ol>
     <li>主機不需要任何 GitHub 帳號：程式的 GitHub repo 自 4.4.2 起為公開（public），隨包的 git 不用憑證就能取得新版；新主機裝好就能更新，不必在客戶的電腦上登入任何帳號。只有在 repo 改回私有時，才需要在主機執行安裝目錄的 <code>setup_update.bat</code> 一次（會出現 GitHub 登入：隨包 MinGit 內建 Git Credential Manager，可用瀏覽器登入，或改貼一個只有 Contents 讀取權限的 fine-grained token；憑證由該 Windows 使用者的「認證管理員」保管，搬機或換帳號時要重做，不要寫進手冊或交接紀錄）。</li>
     <li>之後每次更新：開發機改好程式、跑測試、push 到 GitHub 的 main；主機執行 <code>update.bat</code>（或開始選單「更新 ScreenSplitter」）。它依序：取得 origin/main → 比對 commit，沒有新版就結束 → 透過 API 關閉全部 Player，再結束此安裝目錄殘留的 Player／WebView／WebServer 程序 → <code>git reset --hard origin/main</code> → 若 <code>requirements.txt</code> 有變更則 <code>pip install</code>（需要能連 PyPI）→ 重新啟動 WebServer 與 Players。</li>
+    <li>4.4.3 起 <code>update.bat</code> 會先把自己複製到 <code>%TEMP%\ScreenSplitter_update.bat</code> 再執行那份複本：cmd 是依位元組位置逐行讀批次檔，若更新內容包含 update.bat 本身，正在執行的腳本被 <code>git reset</code> 改寫後會讀到錯位的內容。4.4.2 以前的腳本更新自己時，update.log 可能出現一行「不是內部或外部命令」與重複的 Updating checkout，該次更新仍會完成；4.4.3 的檔案已對齊舊版的位元組位置，所以從 4.4.2 升上來也不受影響。</li>
     <li><code>update.bat check</code> 只回報已安裝與可用的 commit，不停止任何程式。主機上的程式檔若被手動改過，<code>update.bat</code> 會拒絕並列出檔案；確定不要那些修改時用 <code>update.bat force</code>。現場資料不在 git 追蹤範圍，兩種方式都不會動它。</li>
     <li>退回舊版：重新安裝該版的安裝檔。4.4.0 之後的版本也可在安裝目錄執行 <code>git\cmd\git.exe fetch --depth 1 origin tag v4.4.0</code> 再 <code>git\cmd\git.exe checkout v4.4.0</code> 後重啟；下一次 update.bat 會再回到最新版。</li>
   </ol>
@@ -395,7 +396,7 @@
   <p>卸載會移除安裝程式登記的程式檔與捷徑；使用期間產生的設定／LOG／網站資料，以及位於 %APPDATA% 的資料不應被視為一定已刪除或一定會保留。卸載不是備份，也不是網站帳號登出的替代方式。卸載後如要移除殘留資料，先確認實際 DATA_DIR 與備份，交由維護者針對明確路徑處理。</p>
   <h3>4.3.5 的 Qt DLL 匯入問題</h3>
   <p>歷史案例為 <code>ImportError: DLL load failed while importing QtWidgets: 找不到指定的程序</code>。當時打包環境把其他工具的 ICU DLL 帶進 Qt 程式，遮蔽 Windows 所需版本。4.3.6 起採乾淨建置 PATH、拒收意外 ICU 並執行真實 Player 啟動驗證，後續版本包含此修正。</p>
-  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.4.2，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
+  <p>可從 4.3.5 加既有臨時修補直接升級完整 4.4.3，不必先裝中間版本。若仍出現相同錯誤，先保存完整訊息與實際執行路徑，檢查是否啟動舊副本／混用資料夾。不要任意從網路下載同名 DLL 塞入 _internal。</p>
 </section>
 
 <section id="backup" aria-labelledby="backup-title">
@@ -436,6 +437,7 @@
       <tr><td>EXE 視窗不進分區</td><td>先獨立確認 EXE 在同一使用者工作階段可啟動，再查路徑、引號、權限、最小尺寸、多視窗或特殊渲染。RDP 的登入／憑證提示仍需正常處理。</td></tr>
       <tr><td>改完設定沒生效／隔天又回舊值</td><td>核對選取 Profile、儲存成功、實際 config_path；關掉過期編輯分頁後重開。確認是否另一 Admin／分頁後來提交整份舊設定，或啟動了另一安裝副本。</td></tr>
       <tr><td>鬧鐘沒響／重複響</td><td>查 default Player 是否運作、開關與本機時鐘、音檔／喇叭／音量；核對是否於時間後容錯區間重啟，或有另一台播放電腦同時執行。</td></tr>
+      <tr><td>update.log 出現「'…' 不是內部或外部命令」或 Updating checkout 兩次</td><td>4.4.2 以前的 update.bat 在更新自己時的已知現象（cmd 依位元組位置讀取被改寫的腳本），更新結果仍正確；4.4.3 起 update.bat 先複製到 %TEMP% 再執行，不再發生。若 4.4.3 之後仍出現，保留 update.log 回報。</td></tr>
       <tr><td>按了「更新主機」沒反應／更新未完成</td><td>先看 update.log（LOG 區或 DATA_DIR）。Fetch failed：主機連不到 github.com（443）；repo 為私有時才會是憑證問題（到主機跑 setup_update.bat）。Local modifications exist：主機上程式檔被手動改過，確認後在主機執行 update.bat force。頁面停在更新中但主機已回來：重新整理頁面。徽章顯示「檢查失敗」：WebServer 無法對 GitHub 做 git fetch，滑鼠停在徽章上可看到 git 的錯誤訊息；could not read Username 代表 repo 是私有而主機未登入，其他情況看網路與 web_server.log。失敗結果會快取最多 10 分鐘，排除後徽章才會恢復。</td></tr>
     </tbody></table>
   </div>
@@ -615,7 +617,7 @@ curl -H "Authorization: Bearer 你的權杖" "http://播放電腦IP:5000/api/log
   <pre><code>Get-Item -LiteralPath '.\build\ScreenSplitter_Setup.exe' |
   Select-Object -ExpandProperty VersionInfo
 Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</code></pre>
-  <p class="small">舊版的回歸測試、實際 Qt 與 WebView smoke 證據不能自動代替 4.4.2 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
+  <p class="small">舊版的回歸測試、實際 Qt 與 WebView smoke 證據不能自動代替 4.4.3 的新建置結果。本版最終驗證以當次交付紀錄為準。</p>
 </section>
 
 <section id="handover" aria-labelledby="handover-title">
@@ -642,6 +644,6 @@ Get-FileHash -LiteralPath '.\build\ScreenSplitter_Setup.exe' -Algorithm SHA256</
 </section>
 </main>
 </div>
-<footer>ScreenSplitter 4.4.2 使用說明與交接指南 · 2026-11-05。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
+<footer>ScreenSplitter 4.4.3 使用說明與交接指南 · 2026-11-05。依本版程式行為整理；文件版本不代表遠端電腦已完成部署。本頁無外部字體、CDN、計時器或自動 API 請求，可直接離線開啟。</footer>
 </body>
 </html>

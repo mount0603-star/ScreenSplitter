@@ -1,5 +1,12 @@
 # 版本紀錄
 
+## 4.4.3 (2026-11-05)
+
+**update.bat 更新自己時的錯位**
+- 4.4.2 在主機上的第一次網頁更新成功，但 update.log 出現一行「'OOTkill_webserver.bat"' 不是內部或外部命令」與重複的 Updating checkout：cmd 依位元組位置逐行讀批次檔，`git reset` 改寫了正在執行的 update.bat，之後的行就錯位。這次只是多跑一次無害的指令，換個改法可能漏掉重啟。
+- `update.bat` 現在先把自己複製到 `%TEMP%\ScreenSplitter_update.bat` 再執行複本，之後任何對 update.bat 的修改都能安全套用。4.4.3 的檔案在 `git reset` 那一行之後與 4.4.2 位元組完全相同（由產生腳本驗證），所以 4.4.2 的舊腳本升級到 4.4.3 時也不會錯位。
+- 新增測試 `tests/test_update_bat.py`；手冊第 12、14 節補充說明。程式碼其餘部分與 4.4.1 相同。
+
 ## 4.4.2 (2026-11-05)
 
 **主機免登入 GitHub**
