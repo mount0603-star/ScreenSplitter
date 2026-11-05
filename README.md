@@ -26,7 +26,7 @@ Windows 多分區看板輪播系統。四個元件：
 
 安裝包 `ScreenSplitter_Setup_Source` 把這個 repo 的工作目錄、可攜式 Python（`python\`）與 MinGit（`git\`）一起裝到主機，程式直接以原始碼執行。之後的更新流程：
 
-1. 新主機第一次執行 `setup_update.bat`，用瀏覽器登入 GitHub（或貼唯讀權杖）一次；憑證存在 Windows 認證管理員。
+1. 主機不需要 GitHub 帳號：repo 是公開的，隨包的 git 不用憑證就能取得新版。只有 repo 改回私有時，新主機才要先執行 `setup_update.bat` 一次（瀏覽器登入或貼唯讀權杖；憑證存在 Windows 認證管理員）。
 2. 開發機改好程式、跑測試、push 到 `main`。
 3. 在輪播控制台頁首看到「有新版本」後按「更新主機」（4.4.1 起），或在主機執行 `update.bat`／開始選單「更新 ScreenSplitter」：關閉 Player 與 WebServer、`git reset --hard origin/main`、必要時 `pip install`、重新啟動。`update.bat check` 只查詢，`update.bat force` 丟棄主機上的本地修改。
 

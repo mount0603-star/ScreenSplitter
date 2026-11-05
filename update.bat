@@ -5,7 +5,8 @@ rem                       checkout to origin/main, install changed requirements,
 rem   update.bat check    only report the installed and available commits (changes nothing).
 rem   update.bat force    also discard local modifications to tracked files.
 rem Site data (config.json, profiles\, web_profile\, logs) is untracked and never touched.
-rem First-time setup on a new computer: run setup_update.bat once to store the GitHub token.
+rem The repository is public, so no credentials are needed; only if it is made private again
+rem must setup_update.bat be run once on a new computer to store a GitHub token.
 rem The WebAdmin "更新主機" button runs this script through POST /api/update with the output
 rem redirected to <DATA_DIR>\update.log, so "timeout" (needs console input) is not used here.
 setlocal EnableDelayedExpansion
@@ -38,7 +39,8 @@ if exist "%ROOT%VERSION" for /f "usebackq delims=" %%V in ("%ROOT%VERSION") do e
 echo Fetching origin/%BRANCH% ...
 "%GIT%" fetch --depth 1 origin %BRANCH%
 if errorlevel 1 (
-    echo Fetch failed. Check the network and the stored credentials ^(setup_update.bat^).
+    echo Fetch failed. Check the network ^(github.com:443^); for a private repository also the
+    echo stored credentials ^(setup_update.bat^).
     exit /b 3
 )
 for /f "usebackq delims=" %%H in (`"%GIT%" rev-parse origin/%BRANCH%`) do set "NEW=%%H"

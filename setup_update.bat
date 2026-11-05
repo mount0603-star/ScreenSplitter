@@ -1,6 +1,7 @@
 @echo off
-rem One-time setup for update.bat on a new computer: let git remember how to reach the
-rem private GitHub repository so later fetches never prompt.
+rem One-time setup for update.bat on a new computer: let git remember how to reach a
+rem PRIVATE GitHub repository so later fetches never prompt. The ScreenSplitter repository
+rem is public, so this script is only needed if it is ever made private again.
 rem   - With the bundled MinGit, Git Credential Manager is used: a GitHub sign-in window
 rem     opens (browser login, or paste a fine-grained token with read-only "Contents"
 rem     permission). The credential is kept in this Windows user's Credential Manager.
